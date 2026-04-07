@@ -75,7 +75,7 @@ export default function Home() {
       {/* ══ HERO ══ */}
       <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <motion.div
-          style={{ backgroundImage: 'url(/images/hero-bg.jpg)', y: heroY }}
+          style={{ backgroundImage: 'url(https://github.com/mosakowskibartle-tech/sp/blob/main/public/images/hero-bg.jpg?raw=true)', y: heroY }}
           className="absolute inset-0 bg-cover bg-center scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-sp-darkest" />
@@ -126,8 +126,8 @@ export default function Home() {
             {[
               { icon: <Flame size={22} />, val: '150+', label: 'Блюд в меню' },
               { icon: <Clock size={22} />, val: 'До 05:00', label: 'В выходные' },
-              { icon: <Users size={22} />, val: '200', label: 'Мест для банкетов' },
-              { icon: <Star size={22} />, val: avgRating ?? '5.0', label: 'Средняя оценка' },
+              { icon: <Users size={22} />, val: '100', label: 'Мест для банкетов' },
+              { icon: <Star size={22} />, val: avgRating ?? '4.8', label: 'Средняя оценка' },
             ].map((s, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="stat-card">
                 <div className="text-sp-orange mb-1">{s.icon}</div>
@@ -309,7 +309,7 @@ export default function Home() {
               <a href="tel:+79257677778" className="btn-primary flex items-center justify-center gap-2 mt-2"><Phone size={16} />Позвонить</a>
             </div>
             <div className="rounded-2xl overflow-hidden border border-white/8 h-80">
-              <iframe src="https://yandex.ru/map-widget/v1/?ll=37.392000%2C55.988000&z=16&pt=37.392000,55.988000,pm2rdm" width="100%" height="100%" frameBorder="0" title="Карта" />
+              <iframe src="https://yandex.ru/map-widget/v1/org/sol_i_perets/172085958854/?ll=37.282959%2C55.944047&z=16" width="100%" height="100%" frameBorder="0" title="Карта" />
             </div>
           </div>
         </div>
