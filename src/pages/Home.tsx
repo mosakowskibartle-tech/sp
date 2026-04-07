@@ -247,7 +247,7 @@ export default function Home() {
               </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 40 }} animate={isAboutVisible ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.7, delay: 0.2 }} className="grid grid-cols-2 gap-3">
-              {['/images/interior.jpg','/images/team.jpg','/images/gallery-2.jpg','/images/banquet.jpg'].map((src, i) => (
+              {['https://sp-production-fb73.up.railway.app/images/interior.jpg','https://sp-production-fb73.up.railway.app/images/interior.jpg','https://sp-production-fb73.up.railway.app/images/team.jpg','https://sp-production-fb73.up.railway.app/images/banquet.jpg'].map((src, i) => (
                 <motion.img key={i} whileHover={{ scale: 1.03 }} src={src} alt="" className={`rounded-2xl w-full h-44 object-cover ${i % 2 === 1 ? 'mt-6' : ''}`} />
               ))}
             </motion.div>
