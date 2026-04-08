@@ -59,7 +59,8 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-sp-cream/30">
-          <p>© 2025 Кафе «Соль и Перец». Все права защищены.</p>
+          <p>© 2025 Кафе «Соль и Перец». Все права защищены.
+          Фото носит иллюстративный характер.</p>
           <div className="flex gap-4">
             <Link to="/privacy" className="hover:text-sp-cream/60 transition-colors">Политика конфиденциальности</Link>
             <Link to="/terms" className="hover:text-sp-cream/60 transition-colors">Пользовательское соглашение</Link>
