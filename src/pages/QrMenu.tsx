@@ -6,8 +6,8 @@ import { type MenuItem } from '../components/MenuCard';
 
 const FOOD_CATS = [
   { id: 'all', label: 'Всё меню', emoji: '🍽️' },
-  { id: 'Шашлык', label: 'Шашлык', emoji: '🔥' },
-  { id: 'Гриль', label: 'Гриль', emoji: '🥩' },
+  { id: 'Блюда с мангала', label: 'Блюда с мангала', emoji: '🔥' },
+  { id: 'Шашлык на костях', label: 'Шашлык на костях', emoji: '🥩' },
   { id: 'Супы', label: 'Супы', emoji: '🍲' },
   { id: 'Горячие блюда', label: 'Горячие', emoji: '♨️' },
   { id: 'Паста', label: 'Паста', emoji: '🍝' },
