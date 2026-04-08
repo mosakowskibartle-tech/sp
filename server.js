@@ -56,7 +56,7 @@ app.get('/api/health', (_req, res) => res.json({
 // ── React SPA ─────────────────────────────────────────────────────────────────
 const dist = path.join(__dirname, 'dist');
 app.use(express.static(dist, { maxAge: '1d' }));
-app.get('/*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+app.get('/{*path}', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
