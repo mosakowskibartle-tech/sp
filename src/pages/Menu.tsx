@@ -104,9 +104,22 @@ export default function Menu() {
             </h1>
             <p className="text-sp-cream/50">Свежие продукты, авторские рецептуры</p>
           </motion.div>
+          
           <div className="flex gap-3 mt-6">
             <button onClick={() => { setShowBar(false); }} className={`tab-btn ${!showBar ? 'tab-btn-active' : ''}`}>🍽 Кухня</button>
             <button onClick={() => { setShowBar(true); }} className={`tab-btn ${showBar ? 'tab-btn-active' : ''}`}>🍸 Бар</button>
+          </div>
+
+          {/* 🔗 Кнопка "Смотреть PDF меню" */}
+          <div className="mt-5">
+            <a
+              href="https://disk.yandex.ru/d/2xerVobXqqaaUg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-sp-orange hover:bg-sp-orange/90 text-sp-darkest font-medium px-5 py-2.5 rounded-lg transition-colors text-sm shadow-sm"
+            >
+              📄 Смотреть PDF меню
+            </a>
           </div>
         </div>
       </div>
