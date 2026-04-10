@@ -113,7 +113,7 @@ export default function Menu() {
           {/* 🔗 Кнопка "Смотреть PDF меню" */}
           <div className="mt-5">
             <a
-              href="https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FB9ngwbWYIdTtWXNzWM5TBevLWPXdBroHDstCwyMEhKPPGAlJG9uFjNaAs%2Bx1EGgwq%2FJ6bpmRyOJonT3VoXnDag%3D%3D&name=Меню%20Соль%20и%20Перец%20.pdf&nosw=1"
+              href="https://docs.google.com/gview?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmosakowskibartle-tech%2Fmenu%2Fmain%2Fsolperets%20menu.pdf&embedded=true"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-sp-orange hover:bg-sp-orange/90 text-sp-darkest font-medium px-5 py-2.5 rounded-lg transition-colors text-sm shadow-sm"
