@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Minus, Send, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, Minus, Send, RefreshCw, ChevronDown, ChevronUp, User } from 'lucide-react';
 
 interface MenuItem {
   id: number;
@@ -23,8 +23,10 @@ const FOOD_CATS = ['Блюда с мангала','Шашлык на костя�
 const BAR_CATS  = ['Коктейли','Вино','Пиво','Виски','Текила','Ром','Безалкогольные'];
 
 export default function Waiter() {
-  const [authed, setAuthed] = useState(() => !!sessionStorage.getItem('waiter_auth'));
+  // Состояние авторизации: храним объект { name: 'Иван', pinVerified: true }
+  const [authed, setAuthed] = useState<any>(null); 
   const [pin, setPin] = useState('');
+  const [waiterName, setWaiterName] = useState('');
   const [pinError, setPinError] = useState('');
 
   const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -39,16 +41,37 @@ export default function Waiter() {
   const [success, setSuccess] = useState<number | null>(null);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(['all']));
 
-  const WAITER_PIN = '1234'; // Simple PIN for waiter access
+  const WAITER_PIN = '1234'; 
 
-  const handlePinLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin === WAITER_PIN) {
-      sessionStorage.setItem('waiter_auth', '1');
-      setAuthed(true);
-    } else {
-      setPinError('Неверный PIN');
+  // Проверка сессии при загрузке
+  useEffect(() => {
+    const saved = sessionStorage.getItem('waiter_session');
+    if (saved) {
+      setAuthed(JSON.parse(saved));
     }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pin !== WAITER_PIN) {
+      setPinError('Неверный PIN');
+      return;
+    }
+    if (!waiterName.trim()) {
+      setPinError('Введите ваше имя');
+      return;
+    }
+
+    const sessionData = { name: waiterName.trim(), pinVerified: true };
+    sessionStorage.setItem('waiter_session', JSON.stringify(sessionData));
+    setAuthed(sessionData);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('waiter_session');
+    setAuthed(null);
+    setWaiterName('');
+    setPin('');
   };
 
   const fetchMenu = useCallback(async () => {
@@ -86,43 +109,76 @@ export default function Waiter() {
 
   const grouped = categories.map(c => ({ cat: c, items: filtered.filter(i => i.category === c) })).filter(g => g.items.length > 0);
 
-  const sendOrder = async () => {
+    const sendOrder = async () => {
     if (cart.length === 0) return;
+    if (!tableNum) {
+        alert("Пожалуйста, укажите номер стола!");
+        return;
+    }
+
     setSending(true);
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_name: `Стол №${tableNum || '?'} (Официант)`,
-          customer_phone: '+7 (925) 767-77-78',
-          delivery_address: tableNum ? `Стол №${tableNum}` : 'В зале',
-          comment: comment || 'Заказ через официанта',
+          customer_name: `Стол №${tableNum}`,
+          customer_phone: '+7 (925) 767-77-78', // Или можно оставить пустым
+          delivery_address: `Зал, Стол ${tableNum}`,
+          comment: comment || `Заказ от: ${authed?.name}`,
           items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           total_amount: cartTotal,
-          status: 'confirmed', // Already confirmed since waiter is placing it
+          status: 'confirmed',
+          
+          // ВАЖНО: Передаем новые поля
+          table_number: parseInt(tableNum), 
+          waiter_name: authed?.name 
         })
       });
+      
       const data = await res.json();
-      setSuccess(data.id);
-      setCart([]);
-      setComment('');
-    } catch (e) { console.error(e); }
+      
+      if (data.id) {
+        setSuccess(data.id);
+        setCart([]);
+        setComment('');
+        // Можно очистить номер стола, если нужно, или оставить для следующего заказа
+      } else {
+        alert('Ошибка: ' + (data.error || 'Неизвестно'));
+      }
+    } catch (e) { 
+      console.error(e); 
+      alert('Ошибка сети');
+    }
     finally { setSending(false); }
   };
 
+  // --- ЭКРАН ВХОДА ---
   if (!authed) {
     return (
       <div className="min-h-screen bg-sp-darkest flex items-center justify-center p-4">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-sp-dark rounded-2xl p-8 w-full max-w-xs border border-white/8">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-sp-dark rounded-2xl p-8 w-full max-w-xs border border-white/8 shadow-2xl">
           <div className="text-center mb-6">
-            <div className="text-4xl mb-2">👨‍🍳</div>
-            <h1 className="font-display text-xl text-sp-cream font-bold">Меню официанта</h1>
+            <div className="w-16 h-16 bg-sp-orange/20 text-sp-orange rounded-full flex items-center justify-center mx-auto mb-4">
+              <User size={32} />
+            </div>
+            <h1 className="font-display text-xl text-sp-cream font-bold">Вход для персонала</h1>
             <p className="text-sp-cream/40 text-sm mt-1">Соль и Перец</p>
           </div>
-          <form onSubmit={handlePinLogin} className="flex flex-col gap-4">
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div>
-              <label className="form-label">PIN-код</label>
+              <label className="form-label text-sp-cream/60 text-xs uppercase font-bold mb-1 block">Ваше имя</label>
+              <input
+                type="text"
+                placeholder="Например: Александр"
+                value={waiterName}
+                onChange={e => setWaiterName(e.target.value)}
+                className="form-input text-left"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="form-label text-sp-cream/60 text-xs uppercase font-bold mb-1 block">PIN-код</label>
               <input
                 type="password"
                 inputMode="numeric"
@@ -131,31 +187,36 @@ export default function Waiter() {
                 value={pin}
                 onChange={e => setPin(e.target.value)}
                 className="form-input text-center text-xl tracking-widest"
-                autoFocus
               />
             </div>
-            {pinError && <p className="text-red-400 text-sm text-center">{pinError}</p>}
-            <button type="submit" className="btn-primary">Войти</button>
+            {pinError && <p className="text-red-400 text-sm text-center bg-red-500/10 py-2 rounded-lg">{pinError}</p>}
+            <button type="submit" className="btn-primary mt-2">Войти в систему</button>
           </form>
-          <p className="text-sp-cream/20 text-xs text-center mt-4">PIN: 1234</p>
+          <p className="text-sp-cream/20 text-xs text-center mt-6">PIN по умолчанию: 1234</p>
         </motion.div>
       </div>
     );
   }
 
+  // --- ОСНОВНОЙ ИНТЕРФЕЙС ---
   return (
     <div className="min-h-screen bg-sp-darkest flex flex-col">
       {/* Header */}
       <div className="bg-sp-dark border-b border-white/8 px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1 className="text-sp-cream font-bold text-base">👨‍🍳 Меню официанта</h1>
-          <p className="text-sp-cream/30 text-xs">Быстрый ввод заказа</p>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-sp-orange rounded-full flex items-center justify-center text-white font-bold text-xs">
+            {authed.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-sp-cream font-bold text-sm">{authed.name}</h1>
+            <p className="text-sp-cream/30 text-[10px] uppercase tracking-wider">Официант</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchMenu} className="p-2 text-sp-cream/40 hover:text-sp-cream transition-colors">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => { sessionStorage.removeItem('waiter_auth'); setAuthed(false); }} className="text-sp-cream/30 text-xs px-2 py-1 rounded-lg hover:bg-white/5">
+          <button onClick={handleLogout} className="text-sp-cream/30 text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 hover:text-sp-cream transition-all">
             Выйти
           </button>
         </div>
@@ -219,15 +280,15 @@ export default function Waiter() {
           </div>
         </div>
 
-        {/* Cart panel - fixed right side on desktop, bottom on mobile */}
+        {/* Cart panel */}
         <div className="w-72 bg-sp-dark border-l border-white/8 flex flex-col hidden md:flex flex-shrink-0">
-          <CartPanel cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} />
+          <CartPanel cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} waiterName={authed.name} />
         </div>
       </div>
 
       {/* Mobile cart bottom bar */}
       <div className="md:hidden bg-sp-dark border-t border-white/8 flex-shrink-0">
-        <MobileCart cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} />
+        <MobileCart cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} waiterName={authed.name} />
       </div>
     </div>
   );
@@ -264,13 +325,17 @@ interface CartPanelProps {
   onUpdateQty: (id: number, delta: number) => void;
   onSend: () => void; sending: boolean;
   success: number | null; onDismissSuccess: () => void;
+  waiterName: string;
 }
 
-function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment, setComment, onUpdateQty, onSend, sending, success, onDismissSuccess }: CartPanelProps) {
+function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment, setComment, onUpdateQty, onSend, sending, success, onDismissSuccess, waiterName }: CartPanelProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-white/8">
-        <h2 className="text-sp-cream font-semibold text-sm">Заказ {cartCount > 0 && <span className="bg-sp-orange text-white text-xs rounded-full px-2 py-0.5 ml-1">{cartCount}</span>}</h2>
+      <div className="px-4 py-3 border-b border-white/8 bg-black/20">
+        <h2 className="text-sp-cream font-semibold text-sm flex items-center gap-2">
+          Заказ {cartCount > 0 && <span className="bg-sp-orange text-white text-xs rounded-full px-2 py-0.5">{cartCount}</span>}
+        </h2>
+        <p className="text-sp-cream/30 text-[10px] mt-0.5">Официант: {waiterName}</p>
       </div>
 
       <AnimatePresence>
@@ -304,12 +369,21 @@ function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment,
         )}
       </div>
 
-      <div className="px-3 py-3 border-t border-white/8 flex flex-col gap-2">
-        <input type="text" placeholder="Стол №" value={tableNum} onChange={e => setTableNum(e.target.value)} className="form-input py-2 text-sm" />
-        <input type="text" placeholder="Комментарий" value={comment} onChange={e => setComment(e.target.value)} className="form-input py-2 text-sm" />
-        {cartTotal > 0 && <div className="flex justify-between text-sm"><span className="text-sp-cream/50">Итого:</span><span className="text-sp-orange font-bold">{cartTotal.toLocaleString('ru-RU')} ₽</span></div>}
-        <button onClick={onSend} disabled={cart.length === 0 || sending} className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2.5">
-          {sending ? <><RefreshCw size={14} className="animate-spin" />Отправляем...</> : <><Send size={14} />Отправить заказ</>}
+      <div className="px-3 py-3 border-t border-white/8 flex flex-col gap-2 bg-black/20">
+        <input type="text" placeholder="Стол № (обязательно)" value={tableNum} onChange={e => setTableNum(e.target.value)} className="form-input py-2 text-sm bg-white/5 border-white/10 focus:border-sp-orange" />
+        <input type="text" placeholder="Комментарий" value={comment} onChange={e => setComment(e.target.value)} className="form-input py-2 text-sm bg-white/5 border-white/10 focus:border-sp-orange" />
+        
+        <div className="flex justify-between items-center py-1">
+           <span className="text-sp-cream/50 text-xs">Итого:</span>
+           <span className="text-sp-orange font-bold text-lg">{cartTotal.toLocaleString('ru-RU')} ₽</span>
+        </div>
+
+        <button 
+          onClick={onSend} 
+          disabled={cart.length === 0 || !tableNum || sending} 
+          className={`btn-primary w-full flex items-center justify-center gap-2 text-sm py-3 mt-1 ${(!tableNum || cart.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {sending ? <><RefreshCw size={14} className="animate-spin" />Отправляем...</> : <><Send size={14} />Отправить на кухню</>}
         </button>
       </div>
     </div>
@@ -320,8 +394,10 @@ function MobileCart(props: CartPanelProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-4 py-3">
-        <span className="text-sp-cream font-semibold text-sm">Заказ {props.cartCount > 0 && <span className="bg-sp-orange text-white text-xs rounded-full px-2 py-0.5 ml-1">{props.cartCount}</span>}</span>
+      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-4 py-3 bg-sp-dark">
+        <span className="text-sp-cream font-semibold text-sm flex items-center gap-2">
+           🛒 Заказ {props.cartCount > 0 && <span className="bg-sp-orange text-white text-xs rounded-full px-2 py-0.5">{props.cartCount}</span>}
+        </span>
         <div className="flex items-center gap-2">
           {props.cartTotal > 0 && <span className="text-sp-orange font-bold text-sm">{props.cartTotal.toLocaleString('ru-RU')} ₽</span>}
           {open ? <ChevronDown size={16} className="text-sp-cream/40" /> : <ChevronUp size={16} className="text-sp-cream/40" />}
@@ -330,7 +406,7 @@ function MobileCart(props: CartPanelProps) {
       <AnimatePresence>
         {open && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden border-t border-white/8">
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto bg-sp-darkest">
               <CartPanel {...props} />
             </div>
           </motion.div>

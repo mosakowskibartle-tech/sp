@@ -115,7 +115,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/* ─────── QR Section ─────── */
+/* ─────── QR Section (Вставь это внутрь Admin.tsx вместо старого QrSection) ─────── */
 function QrSection() {
   const [sel, setSel] = useState<number|null>(null);
   const [qrUrl, setQrUrl] = useState('');
@@ -125,7 +125,9 @@ function QrSection() {
 
   const generate = async (n: number) => {
     setSel(n);
+    // ВАЖНО: Ссылка ведет на /qr-menu, чтобы открылась отдельная страница без шапки сайта
     const url = `${window.location.origin}/qr-menu?table=${n}`;
+    
     try {
       const QRCode = await import('qrcode');
       const dataUrl = await QRCode.default.toDataURL(url, {
@@ -141,16 +143,20 @@ function QrSection() {
     const QRCode = await import('qrcode');
     const win = window.open('', '_blank');
     if (!win) return;
+    
     let html = `<html><head><title>QR Меню — Соль и Перец</title>
-    <style>body{font-family:sans-serif;background:#fff;margin:0;padding:16px}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-    .card{border:2px solid #E8621A;border-radius:12px;padding:16px;text-align:center;page-break-inside:avoid}
-    h2{color:#1A1410;margin:0 0 8px;font-size:13px;font-weight:700}
-    img{width:130px;height:130px}p{margin:4px 0;font-size:10px;color:#888}
-    .btn{position:fixed;top:10px;right:10px;padding:10px 20px;background:#E8621A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px}
-    @media print{.btn{display:none}}</style></head><body>
+    <style>
+      body{font-family:sans-serif;background:#fff;margin:0;padding:16px}
+      .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+      .card{border:2px solid #E8621A;border-radius:12px;padding:16px;text-align:center;page-break-inside:avoid}
+      h2{color:#1A1410;margin:0 0 8px;font-size:13px;font-weight:700}
+      img{width:130px;height:130px}p{margin:4px 0;font-size:10px;color:#888}
+      .btn{position:fixed;top:10px;right:10px;padding:10px 20px;background:#E8621A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+      @media print{.btn{display:none}}</style></head><body>
     <button class="btn" onclick="window.print()">🖨️ Печать</button><div class="grid">`;
+    
     for (const n of Array.from({length:17},(_,i)=>i+1)) {
+      // Ссылка на qr-menu
       const url = `${window.location.origin}/qr-menu?table=${n}`;
       const d = await QRCode.default.toDataURL(url, { width:200, margin:1, color:{dark:'#1A1410',light:'#FFFFFF'} });
       html += `<div class="card"><h2>Стол №${n}</h2><img src="${d}"/><p>Соль и Перец</p><p style="font-size:9px;color:#bbb">Меню без корзины</p></div>`;
@@ -162,7 +168,7 @@ function QrSection() {
   return (
     <div>
       <h2 className="text-sp-cream font-display text-2xl font-bold mb-1">QR-меню</h2>
-      <p className="text-sp-cream/40 text-sm mb-6">Гость сканирует — видит меню без корзины и доставки</p>
+      <p className="text-sp-cream/40 text-sm mb-6">Гость сканирует — открывается отдельная страница меню без корзины.</p>
       <div className="grid lg:grid-cols-2 gap-6">
         <Section title="Выберите стол">
           <div className="grid grid-cols-6 gap-2 mb-4">
@@ -178,8 +184,8 @@ function QrSection() {
           </button>
           <div className="mt-4 bg-sp-orange/8 border border-sp-orange/15 rounded-xl p-3 text-xs text-sp-cream/50">
             <p className="font-medium text-sp-cream/70 mb-1">Ссылка QR-меню:</p>
-            <code className="text-sp-orange">{origin}/qr-menu?table=N</code>
-            <p className="mt-1">Открывает меню без шапки, корзины и доставки</p>
+            <code className="text-sp-orange break-all">{origin}/qr-menu?table=N</code>
+            <p className="mt-1">Открывает изолированное меню с вкладкой "Мой стол"</p>
           </div>
         </Section>
         <Section title="Предпросмотр">
@@ -190,7 +196,7 @@ function QrSection() {
               </div>
               <div className="text-center">
                 <div className="text-sp-cream font-semibold text-lg">Стол №{sel}</div>
-                <div className="text-sp-cream/30 text-xs mt-0.5 font-mono">{origin}/qr-menu?table={sel}</div>
+                <div className="text-sp-cream/30 text-xs mt-0.5 font-mono break-all max-w-[200px]">{origin}/qr-menu?table={sel}</div>
               </div>
               <div className="flex gap-3">
                 <a href={qrUrl} download={`qr-stol-${sel}.png`} className="btn-primary text-sm">⬇️ Скачать PNG</a>
