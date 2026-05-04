@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Check } from 'lucide-react';
+import { Check } from 'lucide-react'; // Убрали X, так как кнопка закрытия не используется
 
 export default function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -16,9 +16,10 @@ export default function CookieBanner() {
   const handleAccept = () => {
     localStorage.setItem('cookie_consent', 'true');
     setIsVisible(false);
-    // Опционально: можно здесь отправить событие в Метрику, что юзер принял условия
-    if (window.ym) {
-        window.ym(109035396, 'reachGoal', 'cookie_accepted');
+    
+    // Безопасный вызов Метрики (проверяем, существует ли объект ym)
+    if (typeof window !== 'undefined' && (window as any).ym) {
+        (window as any).ym(109035396, 'reachGoal', 'cookie_accepted');
     }
   };
 
@@ -49,11 +50,6 @@ export default function CookieBanner() {
               Принять
             </button>
           </div>
-          
-          {/* Кнопка закрытия (опционально, если хотите разрешить закрыть без принятия, но лучше требовать принятия) */}
-          {/* <button onClick={() => setIsVisible(false)} className="absolute top-2 right-2 text-sp-cream/30 hover:text-sp-cream">
-            <X size={20} />
-          </button> */}
         </div>
       </div>
     </div>
