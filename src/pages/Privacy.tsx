@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function Privacy() {
   // Объявляем константы, чтобы они были доступны в тексте
   const ipName = "ИП Алиев Эхтибар Джахід оглы";
