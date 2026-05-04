@@ -15,7 +15,6 @@ export default async function handler(req, res) {
       if (req.query.table) {
         const tableNum = parseInt(req.query.table);
         
-        // Ищем последний активный заказ для этого СТОЛА (по новой колонке table_number)
         const rows = await db.query(
           `SELECT * FROM orders 
            WHERE table_number = $1 
@@ -43,7 +42,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Обычный GET: вернуть все заказы (для админки/кухни)
+      // Обычный GET: вернуть все заказы
       const rows = await db.query('SELECT * FROM orders ORDER BY created_at DESC');
       return res.json(rows);
     }
@@ -58,15 +57,15 @@ export default async function handler(req, res) {
         items = [], 
         total_amount = 0, 
         status = 'new',
-        table_number = null,   // <--- Номер стола (если есть)
-        waiter_name = null     // <--- Имя официанта (если есть)
+        table_number = null,   
+        waiter_name = null     
       } = req.body;
 
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: 'Корзина пуста' });
       }
 
-      // Вставляем заказ с новыми полями
+      // 1. Сохраняем в БД
       const row = await db.one(
         `INSERT INTO orders 
          (customer_name, customer_phone, delivery_address, comment, items, total_amount, status, table_number, waiter_name)
@@ -85,25 +84,46 @@ export default async function handler(req, res) {
         ]
       );
 
-      // Уведомление в Telegram (только если это не тестовый заказ)
-      if (process.env.TELEGRAM_BOT_TOKEN) {
-          const lines = items.map(i => `• ${i.name} ×${i.quantity} = ${i.price * i.quantity}₽`).join('\n');
-          const tableInfo = table_number ? `\n📍 Стол: <b>${table_number}</b>` : '';
-          const waiterInfo = waiter_name ? `\n👨‍🍳 Официант: <b>${waiter_name}</b>` : '';
+      console.log(`✅ Order #${row.id} created in DB`);
 
-          await sendTelegram(
-            `🍽 <b>Новый заказ #${row.id}</b>\n\n` +
-            `👤 ${customer_name}\n📞 ${customer_phone}\n` +
-            `${tableInfo}${waiterInfo}\n\n` +
-            `${lines}\n\n` +
-            `💰 Итого: <b>${total_amount}₽</b>\n💬 ${comment || 'Без комментария'}`
-          );
+      // 2. Формируем сообщение для Телеграма
+      const lines = items.map(i => `• ${i.name} ×${i.quantity} = ${i.price * i.quantity}₽`).join('\n');
+      
+      // Добавляем информацию о столе и официанте, если они есть
+      let locationInfo = '';
+      if (table_number) {
+        locationInfo += `\n📍 <b>Стол:</b> ${table_number}`;
+      } else if (delivery_address) {
+        locationInfo += `\n📍 <b>Адрес:</b> ${delivery_address}`;
+      }
+
+      let staffInfo = '';
+      if (waiter_name) {
+        staffInfo += `\n👨‍🍳 <b>Официант:</b> ${waiter_name}`;
+      }
+
+      const message = 
+        `🍽 <b>Новый заказ #${row.id}</b>\n\n` +
+        `👤 ${customer_name}\n` +
+        `📞 ${customer_phone}\n` +
+        `${locationInfo}${staffInfo}\n\n` +
+        `<b>Состав заказа:</b>\n${lines}\n\n` +
+        `💰 <b>Итого:</b> ${total_amount}₽\n` +
+        `💬 ${comment || 'Без комментария'}`;
+
+      // 3. Отправляем в Телеграм (без лишних условий)
+      try {
+        await sendTelegram(message);
+        console.log('📨 Telegram notification sent');
+      } catch (tgError) {
+        console.error('❌ Telegram send error:', tgError.message);
+        // Не прерываем выполнение, даже если телеграм упал
       }
 
       return res.status(201).json(row);
     }
 
-    // --- 3. PUT: Обновить статус заказа ---
+    // --- 3. PUT: Обновить статус ---
     if (req.method === 'PUT') {
       const { id, status } = req.body;
       if (!id || !status) {
