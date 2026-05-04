@@ -1,8 +1,10 @@
-import { Link } from 'react-router-dom';
+import React from 'react';
 
 export default function Privacy() {
+  // Объявляем константы, чтобы они были доступны в тексте
   const ipName = "ИП Алиев Эхтибар Джахід оглы";
   const inn = "502413316035";
+  const ogrnip = "326774600287612"; // <-- Эта строка отсутствовала, вызывая ошибку
   const address = "Московская обл., г. Химки, ул. Некрасова, д. 15";
   const phone = "+7 (925) 767-77-78";
   const email = "fine.ehtibar@yandex.ru";
