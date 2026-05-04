@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function Terms() {
   const companyName = "Соль & Перец";
-  const ipName = "ИП Алиев Эхтибар Джахід оглы";
+  const ipName = "ИП Алиев Эхтибар Джахид оглы";
   const inn = "502413316035";
   const ogrnip = "326774600287612";
   const address = "Московская обл., г. Химки, ул. Некрасова, д. 15";
