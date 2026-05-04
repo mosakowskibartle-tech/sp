@@ -86,7 +86,7 @@ export default function Footer() {
         {/* Legal Bottom Bar */}
         <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-sp-cream/30">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-1 md:gap-3 text-center md:text-left">
-            <p>© {currentYear} Ресторан «Соль и Перец». Все права защищены.</p>
+            <p>© {currentYear} Ресторан «Соль и Перец». Все права защищены.Изображения блюд носят иллюстративный характер.</p>
             <p className="hidden md:inline">|</p>
             <p>ИП Алиев Эхтибар Джахид оглы</p>
             <p className="hidden md:inline">|</p>
