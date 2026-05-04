@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Cart from './components/Cart';
 import Footer from './components/Footer';
+// Импортируем новый компонент баннера
+import CookieBanner from './components/CookieBanner'; 
+
 import Home from './pages/Home';
 import Menu from './pages/Menu';
 import Reserve from './pages/Reserve';
@@ -29,6 +32,7 @@ function AppInner() {
     <>
       {!hideShell && <Navbar onCartOpen={() => setCartOpen(true)} />}
       {!hideShell && !isOrderStatus && <Cart open={cartOpen} onClose={() => setCartOpen(false)} />}
+      
       <Routes>
         <Route path="/"            element={<Home />} />
         <Route path="/menu"        element={<Menu />} />
@@ -42,7 +46,11 @@ function AppInner() {
         <Route path="/order/:id"   element={<OrderStatus />} />
         <Route path="/waiter"      element={<Waiter />} />
       </Routes>
+
       {!hideShell && <Footer />}
+      
+      {/* Баннер куки отображается всегда, независимо от роута, так как он фиксирован внизу экрана */}
+      <CookieBanner />
     </>
   );
 }
