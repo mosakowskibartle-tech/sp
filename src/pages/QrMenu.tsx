@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Flame, Clock, User, ChefHat, Receipt } from 'lucide-react';
+import { Search, User, ChefHat, Receipt } from 'lucide-react'; // Убрали Flame и Clock
 import { useSearchParams } from 'react-router-dom';
 import { type MenuItem } from '../components/MenuCard';
 
@@ -41,7 +41,7 @@ interface TableOrder {
   total: number;
 }
 
-// --- КАРТОЧКА БЛЮДА (Твой старый стиль) ---
+// --- КАРТОЧКА БЛЮДА ---
 function QrCard({ item }: { item: MenuItem }) {
   return (
     <motion.div
@@ -64,7 +64,8 @@ function QrCard({ item }: { item: MenuItem }) {
         )}
         <div className="flex items-center justify-between mt-auto">
           <span className="text-orange-600 font-bold text-base">{item.price.toLocaleString('ru-RU')} ₽</span>
-          {item.weight && <span className="text-gray-300 text-xs">{item.weight} г</span>}
+          {/* Используем any для weight, если его нет в типе MenuItem, чтобы не ломать сборку */}
+          {(item as any).weight && <span className="text-gray-300 text-xs">{(item as any).weight} г</span>}
         </div>
       </div>
     </motion.div>
@@ -78,7 +79,6 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
 
   useEffect(() => {
     setLoading(true);
-    // Запрос к API, который мы настроили ранее
     fetch(`/api/orders?table=${tableNum}`)
       .then(r => r.json())
       .then(data => {
@@ -160,14 +160,11 @@ export default function QrMenu() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Вкладки: 'menu' (еда/бар) или 'table' (мой стол)
   const [activeTab, setActiveTab] = useState<'menu' | 'table'>('menu');
-  
   const [mode, setMode] = useState<'food' | 'bar'>('food');
   const [cat, setCat] = useState('all');
   const [search, setSearch] = useState('');
 
-  // Загрузка меню
   useEffect(() => {
     if (activeTab === 'table') return;
     setLoading(true);
@@ -197,11 +194,10 @@ export default function QrMenu() {
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       
-      {/* HEADER (Темный, как в оригинале) */}
+      {/* HEADER */}
       <div className="bg-[#1B1B2F] text-white sticky top-0 z-40 shadow-lg">
         <div className="px-4 pt-4 pb-2">
           
-          {/* Верхняя строка: Лого + Телефон */}
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="font-bold text-lg tracking-wide text-orange-500">СОЛЬ · ПЕРЕЦ</div>
@@ -215,7 +211,7 @@ export default function QrMenu() {
             </a>
           </div>
 
-          {/* Переключатель Вкладок (Меню / Мой Стол) */}
+          {/* Переключатель Вкладок */}
           <div className="flex gap-2 mb-2 bg-black/20 p-1 rounded-xl">
              <button 
                onClick={() => setActiveTab('menu')}
@@ -233,7 +229,7 @@ export default function QrMenu() {
              )}
           </div>
 
-          {/* Поиск и переключение Кухня/Бар (Только если открыто Меню) */}
+          {/* Поиск и переключение Кухня/Бар */}
           {activeTab === 'menu' && (
             <>
               <div className="flex gap-2 mt-3 mb-2">
@@ -259,7 +255,7 @@ export default function QrMenu() {
           )}
         </div>
 
-        {/* Категории (Только если открыто Меню) */}
+        {/* Категории */}
         {activeTab === 'menu' && (
           <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide mask-linear-fade">
             {cats.map(c => (
@@ -278,7 +274,6 @@ export default function QrMenu() {
       <div className="px-3 py-4 max-w-2xl mx-auto">
         <AnimatePresence mode="wait">
           
-          {/* Вкладка МЕНЮ */}
           {activeTab === 'menu' && (
             <motion.div key="menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {loading ? (
@@ -309,7 +304,6 @@ export default function QrMenu() {
             </motion.div>
           )}
 
-          {/* Вкладка МОЙ СТОЛ */}
           {activeTab === 'table' && tableNum && (
             <motion.div key="table" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <MyTableTab tableNum={tableNum} />
