@@ -1,44 +1,8 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Search, User, ChefHat, Receipt, DivideCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { type MenuItem } from '../components/MenuCard';
-
-// --- ЕДИНЫЙ СПИСОК КАТЕГОРИЙ (Как в Menu.tsx) ---
-const FOOD_CATS = [
-  { id: 'all', label: 'Всё' },
-  { id: 'Блюда с мангала', label: '🔥 Блюда с мангала' },
-  { id: 'Шашлык на костях', label: '🍖 Шашлык на костях' },
-  { id: 'Овощи на мангале', label: '🫑 Овощи' },
-  { id: 'Рыба на мангале', label: '🐟 Рыба' },
-  { id: 'Садж на мангале', label: '🥘 Садж' },
-  { id: 'Супы', label: '🍲 Супы' },
-  { id: 'Горячие блюда', label: '♨️ Горячие' },
-  { id: 'Шах плов', label: '🍚 Шах плов' },
-  { id: 'Паста', label: '🍝 Паста' },
-  { id: 'Гарниры', label: '🥔 Гарниры' },
-  { id: 'Салаты', label: '🥗 Салаты' },
-  { id: 'Холодные закуски', label: '🧀 Холодные закуски' },
-  { id: 'Закуски к пиву', label: '🍟 Закуски к пиву' },
-  { id: 'Соусы', label: '🫙 Соусы' },
-  { id: 'Напитки', label: '🥤 Напитки' },
-  { id: 'Авторские чаи', label: '🍵 Авторские чаи' },
-  { id: 'Мороженое', label: '🍦 Мороженое' },
-  { id: 'Десерты', label: '🍰 Десерты' },
-];
-
-const BAR_CATS = [
-  { id: 'all', label: 'Всё' },
-  { id: 'Коктейли', label: '🍹 Коктейли' },
-  { id: 'Вино', label: '🍷 Вино' },
-  { id: 'Шампанское', label: '🥂 Шампанское' },
-  { id: 'Пиво', label: '🍺 Пиво' },
-  { id: 'Виски', label: '🥃 Виски' },
-  { id: 'Коньяк', label: '🥃 Коньяк' },
-  { id: 'Водка', label: '🍶 Водка' },
-  { id: 'Текила', label: '🌵 Текила' },
-  { id: 'Ром', label: '🏝️ Ром' },
-];
 
 interface OrderItem {
   name: string;
@@ -55,32 +19,27 @@ interface TableOrder {
 
 function QrCard({ item }: { item: MenuItem }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col"
-    >
-      {item.image_url && (
-        <div className="relative overflow-hidden h-36">
-          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-          {item.is_special && (
-            <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">⭐ Хит</span>
-          )}
-        </div>
-      )}
-      <div className="p-3 flex flex-col flex-1">
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">{item.name}</h3>
-        {item.description && (
-          <p className="text-gray-400 text-xs leading-relaxed mb-2 line-clamp-2 flex-1">{item.description}</p>
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 flex flex-col mb-3 last:mb-0">
+      <div className="flex p-3 gap-3">
+        {item.image_url && (
+          <img src={item.image_url} alt={item.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100" />
         )}
-        <div className="flex items-center justify-between mt-auto">
-          <span className="text-orange-600 font-bold text-base">
-            {Number(item.price).toLocaleString('ru-RU')} ₽
-          </span>
-          {(item as any).weight && <span className="text-gray-300 text-xs">{(item as any).weight} г</span>}
+        <div className="flex-1 flex flex-col justify-between py-1">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-base leading-tight mb-1">{item.name}</h3>
+            {item.description && (
+              <p className="text-gray-500 text-xs leading-relaxed line-clamp-2">{item.description}</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-orange-600 font-bold text-lg">
+              {Number(item.price).toLocaleString('ru-RU')} ₽
+            </span>
+            {(item as any).weight && <span className="text-gray-400 text-xs">{(item as any).weight} г</span>}
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -104,7 +63,7 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
       .catch(() => setLoading(false));
   }, [tableNum]);
 
-  if (loading) return <div className="text-center py-20 text-gray-400">Загрузка заказа...</div>;
+  if (loading) return <div className="text-center py-20 text-gray-400">Загрузка...</div>;
 
   const totalNum = Number(order?.total) || 0;
   const perPerson = splitCount > 1 ? Math.ceil(totalNum / splitCount) : totalNum;
@@ -127,56 +86,49 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
 
       {/* Разделение счета */}
       <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-orange-800 font-bold flex items-center gap-2">
-            <DivideCircle size={18} /> Разделить счет
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-orange-800 font-bold text-sm flex items-center gap-2">
+            <DivideCircle size={16} /> Счет на компанию
           </h3>
-          <div className="flex items-center gap-3 bg-white px-3 py-1 rounded-lg shadow-sm">
-            <button onClick={() => setSplitCount(Math.max(1, splitCount - 1))} className="text-orange-600 font-bold px-2 hover:bg-orange-50 rounded">-</button>
-            <span className="font-bold text-gray-900 w-4 text-center">{splitCount}</span>
-            <button onClick={() => setSplitCount(splitCount + 1)} className="text-orange-600 font-bold px-2 hover:bg-orange-50 rounded">+</button>
+          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg shadow-sm">
+            <button onClick={() => setSplitCount(Math.max(1, splitCount - 1))} className="w-6 h-6 flex items-center justify-center text-orange-600 font-bold hover:bg-orange-50 rounded">-</button>
+            <span className="font-bold text-gray-900 w-6 text-center">{splitCount}</span>
+            <button onClick={() => setSplitCount(splitCount + 1)} className="w-6 h-6 flex items-center justify-center text-orange-600 font-bold hover:bg-orange-50 rounded">+</button>
           </div>
         </div>
-        <div className="flex justify-between items-end">
-           <span className="text-sm text-gray-600">По {splitCount} чел:</span>
-           <span className="text-xl font-bold text-orange-600">{perPerson.toLocaleString()} ₽ <span className="text-xs font-normal text-gray-500">/ чел</span></span>
+        <div className="flex justify-between items-end border-t border-orange-100 pt-2 mt-2">
+           <span className="text-xs text-gray-500">Сумма с человека:</span>
+           <span className="text-xl font-bold text-orange-600">{perPerson.toLocaleString()} ₽</span>
         </div>
       </div>
 
       {/* Список блюд */}
       <div>
-        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-          <Receipt size={18} className="text-orange-500" /> Текущий заказ
+        <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-lg">
+          <Receipt size={20} className="text-orange-500" /> Заказ
         </h3>
         
         {!order || order.items.length === 0 ? (
           <div className="bg-white/5 rounded-2xl p-8 text-center border border-white/10">
             <ChefHat className="mx-auto text-white/20 mb-2" size={32} />
-            <p className="text-white/60 text-sm">Заказов пока нет.</p>
+            <p className="text-white/60 text-sm">Пока пусто. Позовите официанта.</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
             {order.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-start p-4 border-b border-gray-50 last:border-0">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="bg-gray-100 text-gray-600 text-xs font-bold px-1.5 py-0.5 rounded">{item.qty}x</span>
-                    <span className="text-gray-900 font-medium text-sm">{item.name}</span>
-                  </div>
-                  {item.status && (
-                    <span className={`text-[10px] ml-8 ${item.status === 'ready' ? 'text-green-600' : 'text-orange-500'}`}>
-                      {item.status === 'ready' ? 'Готово' : 'Готовится'}
-                    </span>
-                  )}
+              <div key={idx} className="flex justify-between items-center p-4 border-b border-gray-50 last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className="bg-gray-100 text-gray-600 text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full">{item.qty}x</span>
+                  <span className="text-gray-900 font-medium">{item.name}</span>
                 </div>
-                <div className="font-bold text-gray-900 text-sm whitespace-nowrap">
+                <div className="font-bold text-gray-900">
                   {(Number(item.price) * item.qty).toLocaleString()} ₽
                 </div>
               </div>
             ))}
             <div className="bg-gray-50 p-4 flex justify-between items-center border-t border-gray-100">
-              <span className="text-gray-500 text-sm font-medium">Итого к оплате:</span>
-              <span className="text-orange-600 font-bold text-xl">{totalNum.toLocaleString()} ₽</span>
+              <span className="text-gray-500 font-medium">Итого:</span>
+              <span className="text-orange-600 font-bold text-2xl">{totalNum.toLocaleString()} ₽</span>
             </div>
           </div>
         )}
@@ -191,166 +143,119 @@ export default function QrMenu() {
 
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
   const [activeTab, setActiveTab] = useState<'menu' | 'table'>('menu');
-  const [mode, setMode] = useState<'food' | 'bar'>('food');
-  const [cat, setCat] = useState('all');
   const [search, setSearch] = useState('');
 
+  // Загружаем ВСЕ блюда сразу
   useEffect(() => {
     if (activeTab === 'table') return;
     setLoading(true);
-    fetch(`/api/menu?bar=${mode === 'bar'}`)
+    // Запрашиваем всё меню (bar=false вернет кухню, можно сделать два запроса или один общий)
+    // Для простоты грузим кухню, если нужно бар - можно добавить переключатель внутри вкладки меню, но пока сделаем просто список
+    fetch(`/api/menu`) 
       .then(r => r.json())
       .then(data => { setItems(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [mode, activeTab]);
+  }, [activeTab]);
 
-  useEffect(() => { setCat('all'); }, [mode]);
+  const filtered = items.filter(i => 
+    !search || i.name.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const cats = mode === 'bar' ? BAR_CATS : FOOD_CATS;
-
-  const filtered = items.filter(i => {
-    // Строгое сравнение категорий
-    const mc = cat === 'all' || i.category === cat;
-    const ms = !search || i.name.toLowerCase().includes(search.toLowerCase());
-    return mc && ms;
-  });
-
-  const grouped = cat === 'all'
-    ? cats.filter(c => c.id !== 'all').map(c => ({
-        ...c,
-        items: filtered.filter(i => i.category === c.id)
-      })).filter(g => g.items.length > 0)
-    : null;
+  // Группируем по категориям для красивого списка с заголовками
+  const grouped = (() => {
+    const groups: Record<string, MenuItem[]> = {};
+    filtered.forEach(item => {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push(item);
+    });
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])); // Сортировка по алфавиту
+  })();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       
       {/* HEADER */}
       <div className="bg-[#1B1B2F] text-white sticky top-0 z-40 shadow-lg">
-        <div className="px-4 pt-4 pb-2">
-          
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-4 pt-4 pb-4">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="font-bold text-lg tracking-wide text-orange-500">СОЛЬ · ПЕРЕЦ</div>
+              <div className="font-bold text-xl tracking-wide text-orange-500">СОЛЬ · ПЕРЕЦ</div>
               <div className="text-white/50 text-xs flex items-center gap-1">
                 {tableNum ? `Стол №${tableNum}` : 'Меню'}
-                {tableNum && <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>}
               </div>
             </div>
-            <a href="tel:+79257677778" className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors">
-               📞 Позвонить
+            <a href="tel:+79257677778" className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition-colors">
+               📞
             </a>
           </div>
 
           {/* Переключатель Вкладок */}
-          <div className="flex gap-2 mb-2 bg-black/20 p-1 rounded-xl">
+          <div className="flex gap-2 bg-black/20 p-1 rounded-xl">
              <button 
                onClick={() => setActiveTab('menu')}
-               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'menu' ? 'bg-orange-500 text-white shadow-md' : 'text-white/60 hover:text-white'}`}
+               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'menu' ? 'bg-orange-500 text-white shadow-md' : 'text-white/60 hover:text-white'}`}
              >
                Меню
              </button>
              {tableNum && (
                <button 
                  onClick={() => setActiveTab('table')}
-                 className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'table' ? 'bg-green-600 text-white shadow-md' : 'text-white/60 hover:text-white'}`}
+                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'table' ? 'bg-green-600 text-white shadow-md' : 'text-white/60 hover:text-white'}`}
                >
                  Мой стол
                </button>
              )}
           </div>
-
-          {/* Поиск и переключение Кухня/Бар */}
-          {activeTab === 'menu' && (
-            <>
-              <div className="flex gap-2 mt-3 mb-2">
-                <button onClick={() => setMode('food')}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${mode==='food'?'bg-orange-500 text-white':'bg-white/10 text-white/60'}`}>
-                  🍽️ Кухня
-                </button>
-                <button onClick={() => setMode('bar')}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${mode==='bar'?'bg-orange-500 text-white':'bg-white/10 text-white/60'}`}>
-                  🍸 Бар
-                </button>
-              </div>
-
-              <div className="relative mb-2">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"/>
-                <input
-                  type="text" placeholder="Поиск по меню..."
-                  value={search} onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-white/10 text-white placeholder-white/30 rounded-xl pl-8 pr-3 py-2 text-sm outline-none focus:bg-white/15 transition-colors"
-                />
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Категории */}
+        {/* Поиск (Только в меню) */}
         {activeTab === 'menu' && (
-          <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide mask-linear-fade">
-            {cats.map(c => (
-              <button key={c.id} onClick={() => setCat(c.id)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                  cat===c.id ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
-                }`}>
-                <span>{c.label}</span>
-              </button>
-            ))}
+          <div className="px-4 pb-4">
+             <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"/>
+                <input
+                  type="text" placeholder="Найти блюдо..."
+                  value={search} onChange={e => setSearch(e.target.value)}
+                  className="w-full bg-white/10 text-white placeholder-white/30 rounded-xl pl-10 pr-3 py-3 text-base outline-none focus:bg-white/15 transition-colors"
+                />
+              </div>
           </div>
         )}
       </div>
 
       {/* CONTENT AREA */}
-      <div className="px-3 py-4 max-w-2xl mx-auto">
-        <AnimatePresence mode="wait">
-          
-          {activeTab === 'menu' && (
-            <motion.div key="menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {loading ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {Array.from({length:6}).map((_,i) => <div key={i} className="bg-white rounded-2xl h-48 animate-pulse" />)}
-                </div>
-              ) : grouped ? (
-                <div className="flex flex-col gap-8">
-                  {grouped.map(group => (
-                    <div key={group.id}>
-                      <div className="flex items-center gap-2 mb-3 px-1 sticky top-[130px] bg-gray-50/95 backdrop-blur py-2 z-10">
-                        <h2 className="font-bold text-gray-800 text-base">{group.label}</h2>
-                        <span className="text-gray-400 text-xs ml-1 bg-gray-200 px-1.5 py-0.5 rounded-full">{group.items.length}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        {group.items.map(item => <QrCard key={item.id} item={item} />)}
-                      </div>
+      <div className="px-4 py-6 max-w-2xl mx-auto">
+        
+        {activeTab === 'menu' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {loading ? (
+              <div className="space-y-4">
+                {[1,2,3].map(i => <div key={i} className="h-24 bg-white rounded-xl animate-pulse"></div>)}
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {grouped.map(([catName, catItems]) => (
+                  <div key={catName}>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 sticky top-[140px] bg-gray-50/95 backdrop-blur py-2 z-10 border-b border-gray-200">
+                      {catName}
+                    </h2>
+                    <div>
+                      {catItems.map(item => <QrCard key={item.id} item={item} />)}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20 text-gray-400">
-                  <div className="text-4xl mb-3">🔍</div>
-                  <p>Ничего не найдено</p>
-                </div>
-              )}
-            </motion.div>
-          )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
 
-          {activeTab === 'table' && tableNum && (
-            <motion.div key="table" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <MyTableTab tableNum={tableNum} />
-            </motion.div>
-          )}
+        {activeTab === 'table' && tableNum && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <MyTableTab tableNum={tableNum} />
+          </motion.div>
+        )}
 
-        </AnimatePresence>
-      </div>
-
-      {/* FOOTER */}
-      <div className="bg-[#1B1B2F] text-white/40 text-center text-xs py-6 mt-4 px-4 border-t border-white/5">
-        <p className="font-bold text-white/60 mb-1">Соль и Перец</p>
-        <p>Московская обл., Химки, ул. Некрасова 15</p>
-        <p className="mt-1">Пн–Пт 09:00–01:00 · Сб–Вс 09:00–05:00</p>
-        <a href="tel:+79257677778" className="text-orange-400 font-semibold mt-2 block">+7 (925) 767-77-78</a>
       </div>
     </div>
   );
