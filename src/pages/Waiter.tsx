@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Minus, Send, RefreshCw, User, Settings, Save, Trash2, ArrowLeft, Check } from 'lucide-react';
+// Оставили только те иконки, которые реально используются в коде ниже
+import { 
+  Search, Plus, Minus, Send, Settings, Save, Trash2, ArrowLeft 
+} from 'lucide-react';
 
 interface MenuItem {
   id: number;
