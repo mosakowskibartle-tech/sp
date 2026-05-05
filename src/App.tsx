@@ -15,7 +15,7 @@ import Admin from './pages/Admin';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import OrderStatus from './pages/OrderStatus';
-import WaiterSimple from './pages/WaiterSimple';
+import Waiter from './pages/Waiter';
 import QrMenu from './pages/QrMenu';
 
 function AppInner() {
@@ -55,7 +55,7 @@ function AppInner() {
         <Route path="/privacy"     element={<Privacy />} />
         <Route path="/terms"       element={<Terms />} />
         <Route path="/order/:id"   element={<OrderStatus />} />
-        <Route path="/waiter"      element={<WaiterSimple />} />
+        <Route path="/waiter"      element={<Waiter />} />
         <Route path="/qr-menu"     element={<QrMenu />} />
       </Routes>
 
