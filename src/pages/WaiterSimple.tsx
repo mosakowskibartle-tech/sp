@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Trash2, Send, Check, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Trash2, Send } from 'lucide-react'; // Оставили только используемые
 
 interface MenuItem {
   id: number;
@@ -14,7 +13,6 @@ interface CartItem extends MenuItem {
   quantity: number;
 }
 
-// Упрощенные категории для быстрого переключения
 const CATEGORIES = [
   { id: 'all', label: 'Все' },
   { id: 'Шашлык', label: 'Шашлык' },
@@ -26,11 +24,9 @@ const CATEGORIES = [
 ];
 
 export default function WaiterSimple() {
-  // Авторизация (упрощенная)
   const [authed, setAuthed] = useState(false);
   const [waiterName, setWaiterName] = useState('');
   
-  // Данные
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tableNum, setTableNum] = useState('');
@@ -39,7 +35,6 @@ export default function WaiterSimple() {
   const [sending, setSending] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Загрузка меню при входе
   useEffect(() => {
     if (!authed) return;
     fetch('/api/menu')
@@ -47,7 +42,6 @@ export default function WaiterSimple() {
       .then(data => setMenu(Array.isArray(data) ? data : []));
   }, [authed]);
 
-  // Логика корзины
   const addToCart = (item: MenuItem) => {
     setCart(prev => {
       const existing = prev.find(i => i.id === item.id);
@@ -74,7 +68,6 @@ export default function WaiterSimple() {
 
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  // Отправка заказа
   const sendOrder = async () => {
     if (!tableNum || cart.length === 0) return;
     setSending(true);
@@ -107,14 +100,12 @@ export default function WaiterSimple() {
     }
   };
 
-  // Фильтрация меню
   const filteredMenu = menu.filter(item => {
-    const matchesCat = activeCat === 'all' || item.category.includes(activeCat); // Простая проверка по подстроке
+    const matchesCat = activeCat === 'all' || item.category.includes(activeCat);
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
     return matchesCat && matchesSearch;
   });
 
-  // Экран входа
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -141,9 +132,8 @@ export default function WaiterSimple() {
   return (
     <div className="h-screen bg-gray-900 flex overflow-hidden">
       
-      {/* ЛЕВАЯ ЧАСТЬ: МЕНЮ (СЕТКА) */}
+      {/* ЛЕВАЯ ЧАСТЬ: МЕНЮ */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Верхняя панель: Поиск и Категории */}
         <div className="p-4 bg-gray-800 border-b border-gray-700 flex-shrink-0">
           <div className="flex gap-2 mb-3">
              <input 
@@ -182,20 +172,18 @@ export default function WaiterSimple() {
           </div>
         </div>
 
-        {/* Сетка блюд */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {filteredMenu.map(item => (
               <button
                 key={item.id}
                 onClick={() => addToCart(item)}
-                className="bg-gray-800 hover:bg-gray-700 active:scale-95 transition-all rounded-xl p-3 flex flex-col items-start text-left border border-gray-700 h-32 justify-between group"
+                className="relative bg-gray-800 hover:bg-gray-700 active:scale-95 transition-all rounded-xl p-3 flex flex-col items-start text-left border border-gray-700 h-32 justify-between group"
               >
                 <div>
                   <div className="text-white font-semibold text-sm leading-tight mb-1 line-clamp-2">{item.name}</div>
                   <div className="text-orange-400 font-bold text-xs">{item.price} ₽</div>
                 </div>
-                {/* Визуальная подсказка, если есть в корзине */}
                 {cart.find(c => c.id === item.id) && (
                    <span className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
                      {cart.find(c => c.id === item.id)?.quantity}
@@ -207,7 +195,7 @@ export default function WaiterSimple() {
         </div>
       </div>
 
-      {/* ПРАВАЯ ЧАСТЬ: КОРЗИНА (ЗАКАЗ) */}
+      {/* ПРАВАЯ ЧАСТЬ: КОРЗИНА */}
       <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col shadow-2xl z-10">
         <div className="p-4 border-b border-gray-700 bg-gray-800">
           <h2 className="text-white font-bold text-lg flex items-center gap-2">

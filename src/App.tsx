@@ -15,7 +15,7 @@ import Admin from './pages/Admin';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import OrderStatus from './pages/OrderStatus';
-import Waiter from './pages/Waiter';
+import Waiter from './pages/WaiterSimple';
 import QrMenu from './pages/QrMenu';
 
 function AppInner() {
