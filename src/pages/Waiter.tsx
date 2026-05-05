@@ -1,9 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-// Оставили только те иконки, которые реально используются в коде ниже
-import { 
-  Search, Plus, Minus, Send, Settings, Save, Trash2, ArrowLeft 
-} from 'lucide-react';
+import { Search, Plus, Minus, Send, Settings, Save, Trash2, ArrowLeft } from 'lucide-react';
 
 interface MenuItem {
   id: number;
@@ -19,7 +15,7 @@ interface CartItem extends MenuItem {
 }
 
 interface SavedOrder {
-  id: string; // Уникальный ID заказа (timestamp)
+  id: string;
   tableNum: string;
   items: CartItem[];
   total: number;
@@ -31,51 +27,43 @@ interface SavedOrder {
 const FOOD_CATS = ['Все', 'Мангал', 'Шашлык', 'Горячее', 'Салаты', 'Закуски', 'Напитки'];
 
 export default function Waiter() {
-  // --- Авторизация и Настройки ---
   const [waiterName, setWaiterName] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // --- Данные ---
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>([]);
   
-  // --- Текущее редактирование ---
-  const [activeOrderId, setActiveOrderId] = useState<string | null>(null); // null = новый заказ
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentTable, setCurrentTable] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [generalComment, setGeneralComment] = useState('');
   
-  // --- UI ---
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Все');
   const [sending, setSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Загрузка из LocalStorage при старте
+  // Загрузка из LocalStorage
   useEffect(() => {
     const savedName = localStorage.getItem('sp_waiter_name');
     if (savedName) setWaiterName(savedName);
 
     const savedOrdersData = localStorage.getItem('sp_waiter_orders');
     if (savedOrdersData) {
-      try {
-        setSavedOrders(JSON.parse(savedOrdersData));
-      } catch (e) { console.error(e); }
+      try { setSavedOrders(JSON.parse(savedOrdersData)); } catch (e) { console.error(e); }
     }
   }, []);
 
-  // Сохранение заказов в LocalStorage при изменении
+  // Сохранение в LocalStorage
   useEffect(() => {
     localStorage.setItem('sp_waiter_orders', JSON.stringify(savedOrders));
   }, [savedOrders]);
 
-  // Сохранение имени
   const saveName = () => {
     localStorage.setItem('sp_waiter_name', waiterName);
     setIsSettingsOpen(false);
   };
 
-  // Загрузка меню
   const fetchMenu = useCallback(async () => {
     try {
       const res = await fetch('/api/menu');
@@ -86,7 +74,6 @@ export default function Waiter() {
 
   useEffect(() => { fetchMenu(); }, [fetchMenu]);
 
-  // Логика корзины
   const addToCart = (item: MenuItem) => {
     setCart(prev => {
       const ex = prev.find(i => i.id === item.id);
@@ -105,7 +92,6 @@ export default function Waiter() {
 
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
-  // Открытие заказа (нового или существующего)
   const openOrder = (orderId: string | null) => {
     setActiveOrderId(orderId);
     if (orderId) {
@@ -116,14 +102,12 @@ export default function Waiter() {
         setGeneralComment(order.generalComment);
       }
     } else {
-      // Новый заказ
       setCurrentTable('');
       setCart([]);
       setGeneralComment('');
     }
   };
 
-  // Сохранение черновика заказа
   const saveDraft = () => {
     if (!currentTable) return alert("Введите номер стола");
     
@@ -142,13 +126,10 @@ export default function Waiter() {
       return [newOrder, ...others];
     });
     
-    // Если это был новый заказ, переключаемся на него
     if (!activeOrderId) setActiveOrderId(newOrder.id);
-    
     alert("Черновик сохранен!");
   };
 
-  // Отправка на кухню
   const sendToKitchen = async () => {
     if (!currentTable || cart.length === 0) return;
     if (!waiterName) return alert("Укажите ваше имя в настройках!");
@@ -175,12 +156,10 @@ export default function Waiter() {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
         
-        // Удаляем из черновиков после успешной отправки
         if (activeOrderId) {
            setSavedOrders(prev => prev.filter(o => o.id !== activeOrderId));
         }
         
-        // Сброс
         setActiveOrderId(null);
         setCurrentTable('');
         setCart([]);
@@ -202,14 +181,13 @@ export default function Waiter() {
     }
   };
 
-  // Фильтрация меню
   const filteredMenu = menu.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCat = activeCat === 'Все' || item.category.includes(activeCat); // Простая проверка
+    const matchesCat = activeCat === 'Все' || item.category.includes(activeCat);
     return matchesSearch && matchesCat;
   });
 
-  // --- ЭКРАН НАСТРОЕК ---
+  // Экран настроек
   if (isSettingsOpen) {
     return (
       <div className="min-h-screen bg-sp-darkest p-4 flex flex-col items-center justify-center">
@@ -232,7 +210,7 @@ export default function Waiter() {
     );
   }
 
-  // --- ОСНОВНОЙ ЭКРАН ---
+  // Основной экран
   return (
     <div className="min-h-screen bg-sp-darkest flex flex-col">
       
@@ -258,7 +236,7 @@ export default function Waiter() {
 
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Левая панель: Список столов (если не выбран заказ) */}
+        {/* Левая панель: Список столов */}
         {activeOrderId === null && (
           <div className="w-full md:w-80 bg-sp-dark/50 border-r border-white/5 flex flex-col">
             <div className="p-4 border-b border-white/5">
@@ -294,13 +272,12 @@ export default function Waiter() {
           </div>
         )}
 
-        {/* Правая панель: Меню и Корзина (если выбран заказ) */}
+        {/* Правая панель: Меню и Корзина */}
         {activeOrderId !== null && (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             
             {/* Меню блюд */}
             <div className="flex-1 flex flex-col min-w-0 bg-sp-darkest">
-               {/* Фильтры */}
                <div className="p-3 border-b border-white/5 bg-sp-dark/30 flex-shrink-0">
                   <div className="relative mb-3">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-sp-cream/30" />
@@ -313,7 +290,6 @@ export default function Waiter() {
                   </div>
                </div>
 
-               {/* Список блюд */}
                <div className="flex-1 overflow-y-auto p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 content-start">
                   {filteredMenu.map(item => (
                     <button key={item.id} onClick={() => addToCart(item)} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl p-3 text-left transition-all flex justify-between items-center group">
@@ -329,13 +305,13 @@ export default function Waiter() {
                </div>
             </div>
 
-            {/* Корзина (Справа на десктопе, снизу на мобильном через модалку, но здесь сделаем просто колонкой для простоты) */}
+            {/* Корзина */}
             <div className="w-full md:w-80 bg-sp-dark border-l border-white/5 flex flex-col flex-shrink-0 h-[40vh] md:h-auto">
                <div className="p-4 border-b border-white/5 bg-black/10">
                   <h3 className="text-sp-cream font-bold mb-3">Состав заказа</h3>
                   <div className="flex gap-2 mb-3">
                      <input type="number" placeholder="Стол" value={currentTable} onChange={e => setCurrentTable(e.target.value)} className="w-20 bg-black/20 text-white p-2 rounded-lg text-center font-bold outline-none focus:ring-1 focus:ring-sp-orange" />
-                     <input type="text" placeholder="Комментарий (напр. именинник)" value={generalComment} onChange={e => setGeneralComment(e.target.value)} className="flex-1 bg-black/20 text-white p-2 rounded-lg text-sm outline-none focus:ring-1 focus:ring-sp-orange" />
+                     <input type="text" placeholder="Комментарий" value={generalComment} onChange={e => setGeneralComment(e.target.value)} className="flex-1 bg-black/20 text-white p-2 rounded-lg text-sm outline-none focus:ring-1 focus:ring-sp-orange" />
                   </div>
                </div>
 
@@ -375,7 +351,7 @@ export default function Waiter() {
                   </div>
                   
                   {showSuccess && (
-                    <div className="mb-3 bg-green-500/20 text-green-400 text-center py-2 rounded-lg text-sm font-bold animate-pulse">
+                    <div className="mb-3 bg-green-500/20 text-green-400 text-center py-2 rounded-lg text-sm font-bold">
                       ✅ Отправлено на кухню!
                     </div>
                   )}
