@@ -13,6 +13,7 @@ interface MenuItem {
 
 interface CartItem extends MenuItem {
   quantity: number;
+  comment?: string; // Комментарий к блюду
 }
 
 const FOOD_CATS = ['Блюда с мангала','Шашлык на костях','Овощи на мангале',
@@ -35,12 +36,11 @@ export default function Waiter() {
   const [activeCat, setActiveCat] = useState('all');
   const [showBar, setShowBar] = useState(false);
   const [tableNum, setTableNum] = useState('');
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState(''); // Общий комментарий к заказу
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<number | null>(null);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(['all']));
   
-  // Для мобильного меню корзины
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   const WAITER_PIN = '1234'; 
@@ -81,11 +81,14 @@ export default function Waiter() {
       if (ex) return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
       return [...prev, { ...item, quantity: 1 }];
     });
-    // На мобильном можно сразу открывать корзину или показывать тост, но пока оставим как есть
   };
 
   const updateQty = (id: number, delta: number) => {
     setCart(prev => prev.map(i => i.id === id ? { ...i, quantity: i.quantity + delta } : i).filter(i => i.quantity > 0));
+  };
+
+  const updateItemComment = (id: number, text: string) => {
+    setCart(prev => prev.map(i => i.id === id ? { ...i, comment: text } : i));
   };
 
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -112,7 +115,13 @@ export default function Waiter() {
           customer_phone: '+7 (925) 767-77-78',
           delivery_address: tableNum ? `Стол №${tableNum}` : 'В зале',
           comment: comment || `Заказ от: ${authed?.name}`,
-          items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+          items: cart.map(i => ({ 
+            id: i.id, 
+            name: i.name, 
+            price: i.price, 
+            quantity: i.quantity,
+            comment: i.comment || '' 
+          })),
           total_amount: cartTotal,
           status: 'confirmed',
           table_number: parseInt(tableNum) || null,
@@ -124,7 +133,7 @@ export default function Waiter() {
         setSuccess(data.id);
         setCart([]);
         setComment('');
-        setIsMobileCartOpen(false); // Закрыть корзину на мобильном после успеха
+        setIsMobileCartOpen(false);
       } else {
         alert('Ошибка: ' + (data.error || 'Неизвестно'));
       }
@@ -232,7 +241,7 @@ export default function Waiter() {
 
         {/* Desktop Cart panel (hidden on mobile) */}
         <div className="w-72 bg-sp-dark border-l border-white/8 flex flex-col hidden md:flex flex-shrink-0">
-          <CartPanel cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} waiterName={authed.name} />
+          <CartPanel cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} updateItemComment={updateItemComment} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} waiterName={authed.name} />
         </div>
       </div>
 
@@ -283,7 +292,8 @@ export default function Waiter() {
                   cart={cart} cartTotal={cartTotal} cartCount={cartCount} 
                   tableNum={tableNum} setTableNum={setTableNum} 
                   comment={comment} setComment={setComment} 
-                  onUpdateQty={updateQty} onSend={() => { sendOrder(); setIsMobileCartOpen(false); }} 
+                  onUpdateQty={updateQty} updateItemComment={updateItemComment}
+                  onSend={() => { sendOrder(); setIsMobileCartOpen(false); }} 
                   sending={sending} success={success} 
                   onDismissSuccess={() => setSuccess(null)} 
                   waiterName={authed.name} 
@@ -327,13 +337,14 @@ interface CartPanelProps {
   tableNum: string; setTableNum: (v: string) => void;
   comment: string; setComment: (v: string) => void;
   onUpdateQty: (id: number, delta: number) => void;
+  updateItemComment: (id: number, text: string) => void;
   onSend: () => void; sending: boolean;
   success: number | null; onDismissSuccess: () => void;
   waiterName: string;
   isMobile?: boolean;
 }
 
-function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment, setComment, onUpdateQty, onSend, sending, success, onDismissSuccess, waiterName, isMobile }: CartPanelProps) {
+function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment, setComment, onUpdateQty, updateItemComment, onSend, sending, success, onDismissSuccess, waiterName, isMobile }: CartPanelProps) {
   return (
     <div className={`flex flex-col ${isMobile ? 'h-full' : 'h-full'}`}>
       {!isMobile && (
@@ -358,15 +369,28 @@ function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment,
         ) : (
           <div className="flex flex-col gap-3">
             {cart.map(item => (
-              <div key={item.id} className="flex items-center gap-3 bg-white/5 p-2 rounded-xl">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sp-cream text-sm font-medium truncate">{item.name}</div>
-                  <div className="text-sp-orange text-xs">{(item.price * item.quantity).toLocaleString('ru-RU')} ₽</div>
+              <div key={item.id} className="bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="flex justify-between items-start mb-2">
+                   <div className="flex-1 mr-2">
+                     <div className="text-sp-cream text-sm font-medium">{item.name}</div>
+                     <div className="text-sp-orange text-xs">{(item.price * item.quantity).toLocaleString()} ₽</div>
+                   </div>
+                   <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1">
+                      <button onClick={() => onUpdateQty(item.id, -1)} className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-sp-cream hover:bg-red-500/20"><Minus size={14} /></button>
+                      <span className="text-sp-cream text-sm w-6 text-center font-bold">{item.quantity}</span>
+                      <button onClick={() => onUpdateQty(item.id, 1)} className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-sp-cream hover:bg-sp-orange/20"><Plus size={14} /></button>
+                   </div>
                 </div>
-                <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1">
-                  <button onClick={() => onUpdateQty(item.id, -1)} className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-sp-cream hover:bg-red-500/20 hover:text-red-400 transition-all"><Minus size={14} /></button>
-                  <span className="text-sp-cream text-sm w-6 text-center font-bold">{item.quantity}</span>
-                  <button onClick={() => onUpdateQty(item.id, 1)} className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-sp-cream hover:bg-sp-orange/20 hover:text-sp-orange transition-all"><Plus size={14} /></button>
+                
+                {/* Поле для комментария к блюду */}
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="Заметка к блюду (напр. без лука)" 
+                    value={item.comment || ''}
+                    onChange={(e) => updateItemComment(item.id, e.target.value)}
+                    className="w-full bg-black/20 text-white text-xs rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-sp-orange placeholder-white/20"
+                  />
                 </div>
               </div>
             ))}
@@ -377,7 +401,7 @@ function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment,
       <div className={`p-4 border-t border-white/8 bg-black/20 ${isMobile ? 'pb-8' : ''}`}>
         <div className="flex gap-2 mb-3">
            <input type="number" placeholder="Стол №" value={tableNum} onChange={e => setTableNum(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange w-24 text-center font-bold" />
-           <input type="text" placeholder="Комментарий" value={comment} onChange={e => setComment(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange flex-1" />
+           <input type="text" placeholder="Общий комментарий" value={comment} onChange={e => setComment(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange flex-1" />
         </div>
         
         <div className="flex justify-between items-center py-2 mb-2">

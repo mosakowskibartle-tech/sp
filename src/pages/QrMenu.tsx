@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, ChefHat, Receipt } from 'lucide-react';
+import { Search, User, ChefHat, Receipt, DivideCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { type MenuItem } from '../components/MenuCard';
 
-// --- КАТЕГОРИИ (Как в Waiter и Menu) ---
+// --- КАТЕГОРИИ (Строгое соответствие с БД и Waiter) ---
 const FOOD_CATS = [
   { id: 'all', label: 'Всё меню', emoji: '🍽️' },
   { id: 'Блюда с мангала', label: 'Мангал', emoji: '🔥' },
@@ -28,18 +28,17 @@ const BAR_CATS = [
   { id: 'Безалкогольные', label: 'Б/А', emoji: '🧃' },
 ];
 
-// ... (остальной код типов OrderItem, TableOrder и компонента QrCard остается без изменений) ...
-
 interface OrderItem {
   name: string;
   qty: number;
-  price: number;
+  price: number | string;
   status?: string;
 }
+
 interface TableOrder {
   waiterName: string;
   items: OrderItem[];
-  total: number;
+  total: number | string;
 }
 
 function QrCard({ item }: { item: MenuItem }) {
@@ -63,7 +62,9 @@ function QrCard({ item }: { item: MenuItem }) {
           <p className="text-gray-400 text-xs leading-relaxed mb-2 line-clamp-2 flex-1">{item.description}</p>
         )}
         <div className="flex items-center justify-between mt-auto">
-          <span className="text-orange-600 font-bold text-base">{item.price.toLocaleString('ru-RU')} ₽</span>
+          <span className="text-orange-600 font-bold text-base">
+            {Number(item.price).toLocaleString('ru-RU')} ₽
+          </span>
           {(item as any).weight && <span className="text-gray-300 text-xs">{(item as any).weight} г</span>}
         </div>
       </div>
@@ -74,6 +75,7 @@ function QrCard({ item }: { item: MenuItem }) {
 function MyTableTab({ tableNum }: { tableNum: string }) {
   const [order, setOrder] = useState<TableOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [splitCount, setSplitCount] = useState<number>(1);
 
   useEffect(() => {
     setLoading(true);
@@ -83,7 +85,7 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
         setOrder({
           waiterName: data.waiterName || "Не назначен",
           items: data.items || [],
-          total: data.total || 0
+          total: Number(data.total) || 0
         });
         setLoading(false);
       })
@@ -92,8 +94,12 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
 
   if (loading) return <div className="text-center py-20 text-gray-400">Загрузка заказа...</div>;
 
+  const totalNum = Number(order?.total) || 0;
+  const perPerson = splitCount > 1 ? Math.ceil(totalNum / splitCount) : totalNum;
+
   return (
     <div className="space-y-6 pb-10">
+      {/* Официант */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
         <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center">
           <User size={24} />
@@ -107,6 +113,25 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
         </a>
       </div>
 
+      {/* Разделение счета */}
+      <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-orange-800 font-bold flex items-center gap-2">
+            <DivideCircle size={18} /> Разделить счет
+          </h3>
+          <div className="flex items-center gap-3 bg-white px-3 py-1 rounded-lg shadow-sm">
+            <button onClick={() => setSplitCount(Math.max(1, splitCount - 1))} className="text-orange-600 font-bold px-2 hover:bg-orange-50 rounded">-</button>
+            <span className="font-bold text-gray-900 w-4 text-center">{splitCount}</span>
+            <button onClick={() => setSplitCount(splitCount + 1)} className="text-orange-600 font-bold px-2 hover:bg-orange-50 rounded">+</button>
+          </div>
+        </div>
+        <div className="flex justify-between items-end">
+           <span className="text-sm text-gray-600">По {splitCount} чел:</span>
+           <span className="text-xl font-bold text-orange-600">{perPerson.toLocaleString()} ₽ <span className="text-xs font-normal text-gray-500">/ чел</span></span>
+        </div>
+      </div>
+
+      {/* Список блюд */}
       <div>
         <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
           <Receipt size={18} className="text-orange-500" /> Текущий заказ
@@ -132,14 +157,14 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
                     </span>
                   )}
                 </div>
-                <div className="font-bold text-gray-900 text-sm">
-                  {(item.price * item.qty).toLocaleString()} ₽
+                <div className="font-bold text-gray-900 text-sm whitespace-nowrap">
+                  {(Number(item.price) * item.qty).toLocaleString()} ₽
                 </div>
               </div>
             ))}
             <div className="bg-gray-50 p-4 flex justify-between items-center border-t border-gray-100">
-              <span className="text-gray-500 text-sm font-medium">Итого:</span>
-              <span className="text-orange-600 font-bold text-xl">{order.total.toLocaleString()} ₽</span>
+              <span className="text-gray-500 text-sm font-medium">Итого к оплате:</span>
+              <span className="text-orange-600 font-bold text-xl">{totalNum.toLocaleString()} ₽</span>
             </div>
           </div>
         )}
@@ -174,7 +199,6 @@ export default function QrMenu() {
   const cats = mode === 'bar' ? BAR_CATS : FOOD_CATS;
 
   const filtered = items.filter(i => {
-    // Важно: проверяем точное совпадение категории
     const mc = cat === 'all' || i.category === cat;
     const ms = !search || i.name.toLowerCase().includes(search.toLowerCase());
     return mc && ms;
