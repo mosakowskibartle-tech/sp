@@ -228,7 +228,8 @@ export default function Waiter() {
           <div className="text-center"><div className="text-4xl mb-2">📋</div><p>Выберите или добавьте стол</p></div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-hidden pb-[320px] md:pb-0">
+        /* pb-[55vh] оставляет место под фиксированную корзину на мобильных */
+        <div className="flex-1 flex flex-col overflow-hidden pb-[55vh] md:pb-0">
           
           {/* MENU */}
           <div className="flex-1 flex flex-col min-w-0">
@@ -254,14 +255,14 @@ export default function Waiter() {
             </div>
           </div>
 
-          {/* CART - FIXED BOTTOM PANEL WITH PROPER FLEX LAYOUT */}
-          <div className="fixed bottom-0 left-0 right-0 md:static md:w-96 md:bg-sp-dark/50 md:border-l md:border-white/5 md:flex md:flex-col z-40 bg-sp-dark border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex flex-col max-h-[45vh] md:max-h-none">
+          {/* CART - ЖЕЛЕЗОБЕТОННАЯ ВЁРСТКА */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-sp-dark border-t border-white/8 shadow-[0_-5px_15px_rgba(0,0,0,0.5)] flex flex-col h-[50vh] md:h-auto md:static md:w-96 md:border-l md:border-t-0 md:shadow-none">
             
-            {/* Mobile Cart Toggle */}
-            <button onClick={() => setCartExpanded(!cartExpanded)} className="md:hidden flex items-center justify-between p-3 bg-black/20 border-b border-white/5 flex-shrink-0">
-              <div className="flex items-center gap-3">
+            {/* Mobile Toggle Header */}
+            <button onClick={() => setCartExpanded(!cartExpanded)} className="md:hidden flex items-center justify-between p-3 bg-black/20 border-b border-white/5 flex-shrink-0 active:bg-white/5">
+              <div className="flex items-center gap-2">
                 <span className="bg-sp-orange text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{count}</span>
-                <span className="text-sp-cream text-sm font-medium">Заказ стола {activeTable}</span>
+                <span className="text-sp-cream text-sm font-medium">Стол {activeTable}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sp-orange font-bold text-sm">{total.toLocaleString()} ₽</span>
@@ -269,18 +270,18 @@ export default function Waiter() {
               </div>
             </button>
 
-            {/* Cart Content - FLEX COLUMN LAYOUT */}
-            <div className={`flex flex-col ${cartExpanded ? 'flex-1' : 'hidden md:flex'}`}>
+            {/* Inner Flex Container - занимает всю высоту родителя */}
+            <div className={`flex flex-col h-full overflow-hidden ${cartExpanded ? 'flex' : 'hidden md:flex'}`}>
               
               {/* Comment Input */}
-              <div className="p-3 border-b border-white/5 bg-black/10 flex-shrink-0">
-                <input type="text" placeholder="Комментарий к столу..." value={currentOrder.comment} onChange={e => updateComment(null, e.target.value)} className="w-full bg-black/20 text-white p-2 rounded-lg text-xs outline-none focus:ring-1 focus:ring-sp-orange" />
+              <div className="p-2 border-b border-white/5 bg-black/10 flex-shrink-0">
+                <input type="text" placeholder="Комментарий к столу..." value={currentOrder.comment} onChange={e => updateComment(null, e.target.value)} className="w-full bg-black/20 text-white p-2 rounded text-xs outline-none focus:ring-1 focus:ring-sp-orange" />
               </div>
-              
-              {/* Scrollable Items List - flex-1 makes it take available space */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
+
+              {/* Scrollable Items - flex-1 заставляет этот блок занимать всё свободное место и скроллиться внутри */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-2">
                 {currentOrder.items.length === 0 ? (
-                  <div className="text-center text-sp-cream/30 text-xs py-4">Пусто</div>
+                  <div className="text-center text-sp-cream/30 text-xs py-6">Корзина пуста</div>
                 ) : (
                   currentOrder.items.map(item => (
                     <div key={item.id} className="bg-white/5 rounded-lg p-2">
@@ -288,12 +289,12 @@ export default function Waiter() {
                         <span className="text-sp-cream text-xs font-medium truncate mr-2">{item.name}</span>
                         <span className="text-sp-orange text-xs font-bold">{(item.price * item.quantity).toLocaleString()} ₽</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <input type="text" placeholder="Заметка..." value={item.comment || ''} onChange={e => updateComment(item.id, e.target.value)} className="flex-1 bg-black/20 text-white text-[10px] rounded px-2 py-1 mr-2 outline-none" />
-                        <div className="flex items-center gap-1 bg-black/20 rounded p-0.5">
-                          <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center text-sp-cream hover:text-red-400"><Minus size={10}/></button>
+                      <div className="flex items-center gap-2">
+                        <input type="text" placeholder="Заметка..." value={item.comment || ''} onChange={e => updateComment(item.id, e.target.value)} className="flex-1 bg-black/20 text-white text-[10px] rounded px-2 py-1.5 outline-none" />
+                        <div className="flex items-center gap-1 bg-black/30 rounded px-1">
+                          <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center text-sp-cream"><Minus size={12}/></button>
                           <span className="text-white font-bold w-4 text-center text-xs">{item.quantity}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center text-sp-cream hover:text-sp-orange"><Plus size={10}/></button>
+                          <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center text-sp-cream"><Plus size={12}/></button>
                         </div>
                       </div>
                     </div>
@@ -301,14 +302,18 @@ export default function Waiter() {
                 )}
               </div>
 
-              {/* Footer with Total & Button - ALWAYS VISIBLE, fixed at bottom */}
+              {/* Sticky Footer - flex-shrink-0 гарантирует, что он НИКОГДА не сожмётся и не уедет */}
               <div className="p-3 border-t border-white/5 bg-black/20 flex-shrink-0">
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-sp-cream/60 text-xs">Итого:</span>
                   <span className="text-sp-orange font-bold text-lg">{total.toLocaleString()} ₽</span>
                 </div>
-                <button onClick={sendOrder} disabled={sending || currentOrder.items.length === 0} className={`w-full bg-sp-orange hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all ${sending ? 'cursor-wait' : ''}`}>
-                  {sending ? '⏳...' : <><Send size={14}/> На кухню</>}
+                <button
+                  onClick={sendOrder}
+                  disabled={sending || currentOrder.items.length === 0}
+                  className="w-full bg-sp-orange hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all"
+                >
+                  {sending ? '⏳ Отправка...' : <><Send size={16} /> На кухню</>}
                 </button>
               </div>
 
