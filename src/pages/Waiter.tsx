@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Send, Settings, X, Save, ChevronDown, ChevronUp } from 'lucide-react';
 
-// Точный список категорий из Menu.tsx
 const CATEGORIES = [
   'Все', 'Блюда с мангала', 'Шашлык на костях', 'Овощи на мангале', 
   'Рыба на мангале', 'Садж на мангале', 'Супы', 'Горячие блюда', 
@@ -39,7 +38,7 @@ export default function Waiter() {
   const [activeCat, setActiveCat] = useState('Все');
   const [sending, setSending] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const [cartExpanded, setCartExpanded] = useState(true); // Раскрыта ли корзина на мобильном
+  const [cartExpanded, setCartExpanded] = useState(true);
 
   // === PERSISTENCE ===
   useEffect(() => {
@@ -152,12 +151,9 @@ export default function Waiter() {
       if (!res.ok) throw new Error(data.error || 'Ошибка сервера');
 
       setStatusMsg(`✅ Отправлено!`);
-      
-      // 🔥 ВАЖНО: Не удаляем стол, только очищаем корзину
       updateOrders(prev => prev.map(o => 
         o.tableNum === activeTable ? { ...o, items: [], comment: '' } : o
       ));
-      
       setTimeout(() => setStatusMsg(''), 2000);
     } catch (e: any) {
       console.error('❌ Send error:', e);
@@ -232,7 +228,7 @@ export default function Waiter() {
           <div className="text-center"><div className="text-4xl mb-2">📋</div><p>Выберите или добавьте стол</p></div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-hidden pb-[340px] md:pb-0">
+        <div className="flex-1 flex flex-col overflow-hidden pb-[320px] md:pb-0">
           
           {/* MENU */}
           <div className="flex-1 flex flex-col min-w-0">
@@ -258,11 +254,11 @@ export default function Waiter() {
             </div>
           </div>
 
-          {/* CART - FIXED BOTTOM PANEL */}
-          <div className="fixed bottom-0 left-0 right-0 md:static md:w-96 md:bg-sp-dark/50 md:border-l md:border-white/5 md:flex md:flex-col z-40 bg-sp-dark border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+          {/* CART - FIXED BOTTOM PANEL WITH PROPER FLEX LAYOUT */}
+          <div className="fixed bottom-0 left-0 right-0 md:static md:w-96 md:bg-sp-dark/50 md:border-l md:border-white/5 md:flex md:flex-col z-40 bg-sp-dark border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex flex-col max-h-[45vh] md:max-h-none">
             
             {/* Mobile Cart Toggle */}
-            <button onClick={() => setCartExpanded(!cartExpanded)} className="md:hidden flex items-center justify-between p-3 bg-black/20 border-b border-white/5">
+            <button onClick={() => setCartExpanded(!cartExpanded)} className="md:hidden flex items-center justify-between p-3 bg-black/20 border-b border-white/5 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <span className="bg-sp-orange text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{count}</span>
                 <span className="text-sp-cream text-sm font-medium">Заказ стола {activeTable}</span>
@@ -273,13 +269,16 @@ export default function Waiter() {
               </div>
             </button>
 
-            {/* Cart Content */}
-            <div className={`${cartExpanded ? 'max-h-[280px] md:max-h-none' : 'max-h-0 md:max-h-none'} overflow-hidden md:overflow-visible transition-all duration-200`}>
-              <div className="p-3 md:p-4 border-b border-white/5 bg-black/10 md:bg-transparent">
+            {/* Cart Content - FLEX COLUMN LAYOUT */}
+            <div className={`flex flex-col ${cartExpanded ? 'flex-1' : 'hidden md:flex'}`}>
+              
+              {/* Comment Input */}
+              <div className="p-3 border-b border-white/5 bg-black/10 flex-shrink-0">
                 <input type="text" placeholder="Комментарий к столу..." value={currentOrder.comment} onChange={e => updateComment(null, e.target.value)} className="w-full bg-black/20 text-white p-2 rounded-lg text-xs outline-none focus:ring-1 focus:ring-sp-orange" />
               </div>
               
-              <div className="overflow-y-auto max-h-[180px] md:max-h-48 p-3 space-y-2">
+              {/* Scrollable Items List - flex-1 makes it take available space */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
                 {currentOrder.items.length === 0 ? (
                   <div className="text-center text-sp-cream/30 text-xs py-4">Пусто</div>
                 ) : (
@@ -302,7 +301,8 @@ export default function Waiter() {
                 )}
               </div>
 
-              <div className="p-3 md:p-4 border-t border-white/5 bg-black/20">
+              {/* Footer with Total & Button - ALWAYS VISIBLE, fixed at bottom */}
+              <div className="p-3 border-t border-white/5 bg-black/20 flex-shrink-0">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-sp-cream/60 text-xs">Итого:</span>
                   <span className="text-sp-orange font-bold text-lg">{total.toLocaleString()} ₽</span>
@@ -311,6 +311,7 @@ export default function Waiter() {
                   {sending ? '⏳...' : <><Send size={14}/> На кухню</>}
                 </button>
               </div>
+
             </div>
           </div>
 
