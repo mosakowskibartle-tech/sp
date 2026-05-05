@@ -55,7 +55,7 @@ function AppInner() {
         <Route path="/privacy"     element={<Privacy />} />
         <Route path="/terms"       element={<Terms />} />
         <Route path="/order/:id"   element={<OrderStatus />} />
-        <Route path="/waiter"      element={<Waiter />} />
+        <Route path="/waiter"      element={<WaiterSimple />} />
         <Route path="/qr-menu"     element={<QrMenu />} />
       </Routes>
 
