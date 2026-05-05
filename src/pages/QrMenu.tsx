@@ -4,28 +4,40 @@ import { Search, User, ChefHat, Receipt, DivideCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { type MenuItem } from '../components/MenuCard';
 
-// --- КАТЕГОРИИ (Строгое соответствие с БД и Waiter) ---
+// --- ЕДИНЫЙ СПИСОК КАТЕГОРИЙ (Как в Menu.tsx) ---
 const FOOD_CATS = [
-  { id: 'all', label: 'Всё меню', emoji: '🍽️' },
-  { id: 'Блюда с мангала', label: 'Мангал', emoji: '🔥' },
-  { id: 'Шашлык на костях', label: 'Шашлык', emoji: '🥩' },
-  { id: 'Супы', label: 'Супы', emoji: '🍲' },
-  { id: 'Горячие блюда', label: 'Горячее', emoji: '♨️' },
-  { id: 'Паста', label: 'Паста', emoji: '🍝' },
-  { id: 'Гарниры', label: 'Гарниры', emoji: '🍚' },
-  { id: 'Салаты', label: 'Салаты', emoji: '🥗' },
-  { id: 'Холодные закуски', label: 'Закуски', emoji: '🧀' },
-  { id: 'Напитки', label: 'Напитки', emoji: '🥤' },
-  { id: 'Десерты', label: 'Десерты', emoji: '🍰' },
+  { id: 'all', label: 'Всё' },
+  { id: 'Блюда с мангала', label: '🔥 Блюда с мангала' },
+  { id: 'Шашлык на костях', label: '🍖 Шашлык на костях' },
+  { id: 'Овощи на мангале', label: '🫑 Овощи' },
+  { id: 'Рыба на мангале', label: '🐟 Рыба' },
+  { id: 'Садж на мангале', label: '🥘 Садж' },
+  { id: 'Супы', label: '🍲 Супы' },
+  { id: 'Горячие блюда', label: '♨️ Горячие' },
+  { id: 'Шах плов', label: '🍚 Шах плов' },
+  { id: 'Паста', label: '🍝 Паста' },
+  { id: 'Гарниры', label: '🥔 Гарниры' },
+  { id: 'Салаты', label: '🥗 Салаты' },
+  { id: 'Холодные закуски', label: '🧀 Холодные закуски' },
+  { id: 'Закуски к пиву', label: '🍟 Закуски к пиву' },
+  { id: 'Соусы', label: '🫙 Соусы' },
+  { id: 'Напитки', label: '🥤 Напитки' },
+  { id: 'Авторские чаи', label: '🍵 Авторские чаи' },
+  { id: 'Мороженое', label: '🍦 Мороженое' },
+  { id: 'Десерты', label: '🍰 Десерты' },
 ];
 
 const BAR_CATS = [
-  { id: 'all', label: 'Всё', emoji: '🍸' },
-  { id: 'Коктейли', label: 'Коктейли', emoji: '🍹' },
-  { id: 'Вино', label: 'Вино', emoji: '🍷' },
-  { id: 'Пиво', label: 'Пиво', emoji: '🍺' },
-  { id: 'Виски', label: 'Виски', emoji: '🥃' },
-  { id: 'Безалкогольные', label: 'Б/А', emoji: '🧃' },
+  { id: 'all', label: 'Всё' },
+  { id: 'Коктейли', label: '🍹 Коктейли' },
+  { id: 'Вино', label: '🍷 Вино' },
+  { id: 'Шампанское', label: '🥂 Шампанское' },
+  { id: 'Пиво', label: '🍺 Пиво' },
+  { id: 'Виски', label: '🥃 Виски' },
+  { id: 'Коньяк', label: '🥃 Коньяк' },
+  { id: 'Водка', label: '🍶 Водка' },
+  { id: 'Текила', label: '🌵 Текила' },
+  { id: 'Ром', label: '🏝️ Ром' },
 ];
 
 interface OrderItem {
@@ -199,6 +211,7 @@ export default function QrMenu() {
   const cats = mode === 'bar' ? BAR_CATS : FOOD_CATS;
 
   const filtered = items.filter(i => {
+    // Строгое сравнение категорий
     const mc = cat === 'all' || i.category === cat;
     const ms = !search || i.name.toLowerCase().includes(search.toLowerCase());
     return mc && ms;
@@ -283,7 +296,7 @@ export default function QrMenu() {
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
                   cat===c.id ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
                 }`}>
-                <span>{c.emoji}</span><span>{c.label}</span>
+                <span>{c.label}</span>
               </button>
             ))}
           </div>
@@ -305,7 +318,6 @@ export default function QrMenu() {
                   {grouped.map(group => (
                     <div key={group.id}>
                       <div className="flex items-center gap-2 mb-3 px-1 sticky top-[130px] bg-gray-50/95 backdrop-blur py-2 z-10">
-                        <span className="text-xl">{group.emoji}</span>
                         <h2 className="font-bold text-gray-800 text-base">{group.label}</h2>
                         <span className="text-gray-400 text-xs ml-1 bg-gray-200 px-1.5 py-0.5 rounded-full">{group.items.length}</span>
                       </div>

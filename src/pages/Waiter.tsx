@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Minus, Send, RefreshCw, ChevronDown, ChevronUp, User, X, ShoppingCart } from 'lucide-react';
+import { Search, Plus, Minus, Send, RefreshCw, ChevronDown, ChevronUp, User, X, ShoppingCart, MessageSquare, ArrowLeft } from 'lucide-react';
 
 interface MenuItem {
   id: number;
@@ -13,7 +13,17 @@ interface MenuItem {
 
 interface CartItem extends MenuItem {
   quantity: number;
-  comment?: string; // Комментарий к блюду
+  comment?: string;
+}
+
+interface ActiveOrder {
+  id: number;
+  table_number: number;
+  waiter_name: string;
+  items: CartItem[];
+  total_amount: number;
+  comment?: string; // Общий комментарий к столу
+  status: string;
 }
 
 const FOOD_CATS = ['Блюда с мангала','Шашлык на костях','Овощи на мангале',
@@ -31,17 +41,22 @@ export default function Waiter() {
 
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Корзина текущего редактируемого стола
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [currentTable, setCurrentTable] = useState<string>('');
+  const [generalComment, setGeneralComment] = useState(''); // Общий комментарий к столу
+  
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('all');
   const [showBar, setShowBar] = useState(false);
-  const [tableNum, setTableNum] = useState('');
-  const [comment, setComment] = useState(''); // Общий комментарий к заказу
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<number | null>(null);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(['all']));
   
-  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+  // Панель активных столов
+  const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
+  const [viewingOrderId, setViewingOrderId] = useState<number | null>(null); // Если смотрим существующий заказ
 
   const WAITER_PIN = '1234'; 
 
@@ -49,6 +64,21 @@ export default function Waiter() {
     const saved = sessionStorage.getItem('waiter_session');
     if (saved) setAuthed(JSON.parse(saved));
   }, []);
+
+  // Загрузка активных заказов этого официанта при входе
+  useEffect(() => {
+    if (!authed) return;
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(data => {
+        // Фильтруем только активные заказы этого официанта
+        const myOrders = data.filter((o: any) => 
+          o.waiter_name === authed.name && 
+          !['delivered', 'cancelled'].includes(o.status)
+        );
+        setActiveOrders(myOrders);
+      });
+  }, [authed, success]); // Обновляем после успешной отправки
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,17 +134,19 @@ export default function Waiter() {
   const grouped = categories.map(c => ({ cat: c, items: filtered.filter(i => i.category === c) })).filter(g => g.items.length > 0);
 
   const sendOrder = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 && !viewingOrderId) return;
+    if (!currentTable) { alert("Укажите номер стола!"); return; }
+
     setSending(true);
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_name: `Стол №${tableNum || '?'} (Официант: ${authed?.name})`,
+          customer_name: `Стол №${currentTable} (Официант: ${authed?.name})`,
           customer_phone: '+7 (925) 767-77-78',
-          delivery_address: tableNum ? `Стол №${tableNum}` : 'В зале',
-          comment: comment || `Заказ от: ${authed?.name}`,
+          delivery_address: `Зал, Стол ${currentTable}`,
+          comment: generalComment || `Заказ от: ${authed?.name}`, // Общий комментарий
           items: cart.map(i => ({ 
             id: i.id, 
             name: i.name, 
@@ -124,7 +156,7 @@ export default function Waiter() {
           })),
           total_amount: cartTotal,
           status: 'confirmed',
-          table_number: parseInt(tableNum) || null,
+          table_number: parseInt(currentTable),
           waiter_name: authed?.name
         })
       });
@@ -132,13 +164,24 @@ export default function Waiter() {
       if (data.success || data.id) {
         setSuccess(data.id);
         setCart([]);
-        setComment('');
-        setIsMobileCartOpen(false);
+        setGeneralComment('');
+        setCurrentTable('');
+        setViewingOrderId(null);
       } else {
         alert('Ошибка: ' + (data.error || 'Неизвестно'));
       }
     } catch (e) { console.error(e); alert('Ошибка сети'); }
     finally { setSending(false); }
+  };
+
+  // Открыть существующий заказ для редактирования
+  const openOrder = (order: ActiveOrder) => {
+    setViewingOrderId(order.id);
+    setCurrentTable(String(order.table_number));
+    setCart(order.items || []);
+    setGeneralComment(order.comment || '');
+    // На мобильном закрываем список столов, открываем корзину/меню
+    // В десктопе просто заполняем поля
   };
 
   if (!authed) {
@@ -186,81 +229,144 @@ export default function Waiter() {
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Menu panel */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Filters */}
-          <div className="bg-sp-dark/80 backdrop-blur px-3 py-2 border-b border-white/5 flex-shrink-0">
-            <div className="flex gap-2 mb-2">
-              <button onClick={() => { setShowBar(false); setActiveCat('all'); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${!showBar ? 'bg-sp-orange text-white' : 'bg-white/8 text-sp-cream/50'}`}>🍽 Кухня</button>
-              <button onClick={() => { setShowBar(true); setActiveCat('all'); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${showBar ? 'bg-sp-orange text-white' : 'bg-white/8 text-sp-cream/50'}`}>🍸 Бар</button>
-            </div>
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-sp-cream/30" />
-              <input type="text" placeholder="Поиск блюда..." value={search} onChange={e => setSearch(e.target.value)} className="form-input pl-8 py-1.5 text-sm w-full" />
-            </div>
-            <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1 scrollbar-hide">
-              <button onClick={() => setActiveCat('all')} className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 transition-all ${activeCat === 'all' ? 'bg-sp-orange/20 text-sp-orange border border-sp-orange/30' : 'bg-white/5 text-sp-cream/40'}`}>Всё</button>
-              {categories.map(c => (
-                <button key={c} onClick={() => setActiveCat(c)} className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 transition-all whitespace-nowrap ${activeCat === c ? 'bg-sp-orange/20 text-sp-orange border border-sp-orange/30' : 'bg-white/5 text-sp-cream/40'}`}>{c}</button>
-              ))}
-            </div>
-          </div>
+        
+        {/* Левая часть: Меню или Список столов */}
+        <div className="flex-1 flex flex-col overflow-hidden border-r border-white/5">
+          
+          {/* Если открыт список активных столов (только для десктопа или по кнопке) */}
+          {viewingOrderId === null && (
+             <div className="p-4 overflow-y-auto h-full">
+                <h2 className="text-sp-cream font-bold text-lg mb-4 flex items-center gap-2">
+                   <ShoppingCart size={20} className="text-sp-orange"/> Мои активные столы
+                </h2>
+                {activeOrders.length === 0 ? (
+                   <div className="text-center text-sp-cream/30 mt-10">Нет активных заказов</div>
+                ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {activeOrders.map(order => (
+                         <button 
+                           key={order.id} 
+                           onClick={() => openOrder(order)}
+                           className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-4 text-left transition-all"
+                         >
+                            <div className="flex justify-between items-start mb-2">
+                               <span className="text-sp-orange font-bold text-xl">Стол {order.table_number}</span>
+                               <span className="text-sp-cream font-bold">{order.total_amount.toLocaleString()} ₽</span>
+                            </div>
+                            <div className="text-sp-cream/60 text-xs mb-2">
+                               {order.items?.length || 0} позиций
+                            </div>
+                            {order.comment && (
+                               <div className="bg-sp-orange/10 text-sp-orange/80 text-xs p-2 rounded mb-2 flex items-start gap-1">
+                                  <MessageSquare size={12} className="mt-0.5 flex-shrink-0"/>
+                                  {order.comment}
+                               </div>
+                            )}
+                            <div className="text-sp-cream/40 text-[10px]">Нажмите, чтобы добавить блюда</div>
+                         </button>
+                      ))}
+                   </div>
+                )}
+             </div>
+          )}
 
-          {/* Menu items */}
-          <div className="flex-1 overflow-y-auto px-3 py-2 pb-20 md:pb-2">
-            {loading ? (
-              <div className="text-center py-10 text-sp-cream/30">Загружаем меню...</div>
-            ) : activeCat !== 'all' ? (
-              <div className="flex flex-col gap-1.5">
-                {filtered.map(item => <WaiterItem key={item.id} item={item} cart={cart} onAdd={() => addToCart(item)} />)}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {grouped.map(g => (
-                  <div key={g.cat}>
-                    <button onClick={() => setExpandedCats(prev => { const s = new Set(prev); s.has(g.cat) ? s.delete(g.cat) : s.add(g.cat); return s; })} className="w-full flex items-center justify-between py-2 text-left">
-                      <span className="text-sp-cream/60 text-xs font-semibold uppercase tracking-wider">{g.cat} ({g.items.length})</span>
-                      {expandedCats.has(g.cat) ? <ChevronUp size={14} className="text-sp-cream/30" /> : <ChevronDown size={14} className="text-sp-cream/30" />}
-                    </button>
-                    <AnimatePresence>
-                      {expandedCats.has(g.cat) && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                          <div className="flex flex-col gap-1.5 pb-2">
-                            {g.items.map(item => <WaiterItem key={item.id} item={item} cart={cart} onAdd={() => addToCart(item)} />)}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!loading && filtered.length === 0 && <div className="text-center py-10 text-sp-cream/30">Ничего не найдено</div>}
-          </div>
+          {/* Если выбран стол для редактирования - показываем меню */}
+          {viewingOrderId !== null && (
+             <>
+                {/* Filters */}
+                <div className="bg-sp-dark/80 backdrop-blur px-3 py-2 border-b border-white/5 flex-shrink-0">
+                   <div className="flex items-center gap-2 mb-2">
+                      <button onClick={() => setViewingOrderId(null)} className="text-sp-cream/60 hover:text-white flex items-center gap-1 text-xs">
+                         <ArrowLeft size={12}/> Назад к столам
+                      </button>
+                   </div>
+                   <div className="flex gap-2 mb-2">
+                     <button onClick={() => { setShowBar(false); setActiveCat('all'); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${!showBar ? 'bg-sp-orange text-white' : 'bg-white/8 text-sp-cream/50'}`}>🍽 Кухня</button>
+                     <button onClick={() => { setShowBar(true); setActiveCat('all'); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${showBar ? 'bg-sp-orange text-white' : 'bg-white/8 text-sp-cream/50'}`}>🍸 Бар</button>
+                   </div>
+                   <div className="relative">
+                     <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-sp-cream/30" />
+                     <input type="text" placeholder="Поиск блюда..." value={search} onChange={e => setSearch(e.target.value)} className="form-input pl-8 py-1.5 text-sm w-full" />
+                   </div>
+                   <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+                     <button onClick={() => setActiveCat('all')} className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 transition-all ${activeCat === 'all' ? 'bg-sp-orange/20 text-sp-orange border border-sp-orange/30' : 'bg-white/5 text-sp-cream/40'}`}>Всё</button>
+                     {categories.map(c => (
+                       <button key={c} onClick={() => setActiveCat(c)} className={`text-xs px-2.5 py-1 rounded-full flex-shrink-0 transition-all whitespace-nowrap ${activeCat === c ? 'bg-sp-orange/20 text-sp-orange border border-sp-orange/30' : 'bg-white/5 text-sp-cream/40'}`}>{c}</button>
+                     ))}
+                   </div>
+                </div>
+
+                {/* Menu items */}
+                <div className="flex-1 overflow-y-auto px-3 py-2 pb-20 md:pb-2">
+                  {loading ? (
+                    <div className="text-center py-10 text-sp-cream/30">Загружаем меню...</div>
+                  ) : activeCat !== 'all' ? (
+                    <div className="flex flex-col gap-1.5">
+                      {filtered.map(item => <WaiterItem key={item.id} item={item} cart={cart} onAdd={() => addToCart(item)} />)}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {grouped.map(g => (
+                        <div key={g.cat}>
+                          <button onClick={() => setExpandedCats(prev => { const s = new Set(prev); s.has(g.cat) ? s.delete(g.cat) : s.add(g.cat); return s; })} className="w-full flex items-center justify-between py-2 text-left">
+                            <span className="text-sp-cream/60 text-xs font-semibold uppercase tracking-wider">{g.cat} ({g.items.length})</span>
+                            {expandedCats.has(g.cat) ? <ChevronUp size={14} className="text-sp-cream/30" /> : <ChevronDown size={14} className="text-sp-cream/30" />}
+                          </button>
+                          <AnimatePresence>
+                            {expandedCats.has(g.cat) && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="flex flex-col gap-1.5 pb-2">
+                                  {g.items.map(item => <WaiterItem key={item.id} item={item} cart={cart} onAdd={() => addToCart(item)} />)}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!loading && filtered.length === 0 && <div className="text-center py-10 text-sp-cream/30">Ничего не найдено</div>}
+                </div>
+             </>
+          )}
         </div>
 
-        {/* Desktop Cart panel (hidden on mobile) */}
-        <div className="w-72 bg-sp-dark border-l border-white/8 flex flex-col hidden md:flex flex-shrink-0">
-          <CartPanel cart={cart} cartTotal={cartTotal} cartCount={cartCount} tableNum={tableNum} setTableNum={setTableNum} comment={comment} setComment={setComment} onUpdateQty={updateQty} updateItemComment={updateItemComment} onSend={sendOrder} sending={sending} success={success} onDismissSuccess={() => setSuccess(null)} waiterName={authed.name} />
+        {/* Правая часть: Корзина (Desktop) */}
+        <div className="w-80 bg-sp-dark border-l border-white/8 flex flex-col hidden md:flex flex-shrink-0">
+           <CartPanel 
+             cart={cart} cartTotal={cartTotal} cartCount={cartCount} 
+             tableNum={currentTable} setTableNum={setCurrentTable} 
+             generalComment={generalComment} setGeneralComment={setGeneralComment}
+             onUpdateQty={updateQty} updateItemComment={updateItemComment} 
+             onSend={sendOrder} sending={sending} success={success} 
+             onDismissSuccess={() => setSuccess(null)} waiterName={authed.name} 
+             viewingOrderId={viewingOrderId}
+           />
         </div>
       </div>
 
       {/* Mobile Bottom Bar & Drawer */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sp-dark border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         <button 
-          onClick={() => setIsMobileCartOpen(true)}
+          onClick={() => setViewingOrderId(viewingOrderId === null ? -1 : viewingOrderId)} // -1 means open empty cart for new order logic if needed, but here we just toggle view
           className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <ShoppingCart className="text-sp-orange" size={20} />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-sp-orange text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
-                  {cartCount}
-                </span>
-              )}
-            </div>
-            <span className="text-sp-cream font-semibold text-sm">Открыть заказ</span>
+             {viewingOrderId === null ? (
+                <span className="text-sp-cream font-semibold text-sm">Выбрать стол для заказа</span>
+             ) : (
+                <>
+                  <div className="relative">
+                    <ShoppingCart className="text-sp-orange" size={20} />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-sp-orange text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                        {cartCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sp-cream font-semibold text-sm">Заказ стола {currentTable || '?'}</span>
+                </>
+             )}
           </div>
           <div className="flex items-center gap-2">
             {cartTotal > 0 && <span className="text-sp-orange font-bold text-lg">{cartTotal.toLocaleString('ru-RU')} ₽</span>}
@@ -271,11 +377,11 @@ export default function Waiter() {
 
       {/* Mobile Cart Modal Overlay */}
       <AnimatePresence>
-        {isMobileCartOpen && (
+        {viewingOrderId !== null && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsMobileCartOpen(false)}
+              onClick={() => setViewingOrderId(null)}
               className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
             />
             <motion.div 
@@ -284,20 +390,21 @@ export default function Waiter() {
               className="fixed bottom-0 left-0 right-0 z-50 bg-sp-dark rounded-t-3xl border-t border-white/10 flex flex-col max-h-[85vh]"
             >
               <div className="p-4 border-b border-white/8 flex items-center justify-between">
-                <h2 className="text-sp-cream font-bold text-lg">Заказ стола {tableNum || '?'}</h2>
-                <button onClick={() => setIsMobileCartOpen(false)} className="p-2 bg-white/5 rounded-full text-sp-cream/60 hover:text-white"><X size={20} /></button>
+                <h2 className="text-sp-cream font-bold text-lg">Заказ стола {currentTable || '?'}</h2>
+                <button onClick={() => setViewingOrderId(null)} className="p-2 bg-white/5 rounded-full text-sp-cream/60 hover:text-white"><X size={20} /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <CartPanel 
                   cart={cart} cartTotal={cartTotal} cartCount={cartCount} 
-                  tableNum={tableNum} setTableNum={setTableNum} 
-                  comment={comment} setComment={setComment} 
+                  tableNum={currentTable} setTableNum={setCurrentTable} 
+                  generalComment={generalComment} setGeneralComment={setGeneralComment}
                   onUpdateQty={updateQty} updateItemComment={updateItemComment}
-                  onSend={() => { sendOrder(); setIsMobileCartOpen(false); }} 
+                  onSend={() => { sendOrder(); setViewingOrderId(null); }} 
                   sending={sending} success={success} 
                   onDismissSuccess={() => setSuccess(null)} 
                   waiterName={authed.name} 
                   isMobile={true}
+                  viewingOrderId={viewingOrderId}
                 />
               </div>
             </motion.div>
@@ -335,21 +442,25 @@ function WaiterItem({ item, cart, onAdd }: { item: MenuItem; cart: CartItem[]; o
 interface CartPanelProps {
   cart: CartItem[]; cartTotal: number; cartCount: number;
   tableNum: string; setTableNum: (v: string) => void;
-  comment: string; setComment: (v: string) => void;
+  generalComment: string; setGeneralComment: (v: string) => void;
   onUpdateQty: (id: number, delta: number) => void;
   updateItemComment: (id: number, text: string) => void;
   onSend: () => void; sending: boolean;
   success: number | null; onDismissSuccess: () => void;
   waiterName: string;
   isMobile?: boolean;
+  viewingOrderId: number | null;
 }
 
-function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment, setComment, onUpdateQty, updateItemComment, onSend, sending, success, onDismissSuccess, waiterName, isMobile }: CartPanelProps) {
+function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, generalComment, setGeneralComment, onUpdateQty, updateItemComment, onSend, sending, success, onDismissSuccess, waiterName, isMobile, viewingOrderId }: CartPanelProps) {
   return (
     <div className={`flex flex-col ${isMobile ? 'h-full' : 'h-full'}`}>
       {!isMobile && (
          <div className="px-4 py-3 border-b border-white/8 bg-black/20">
-           <h2 className="text-sp-cream font-semibold text-sm flex items-center gap-2">Заказ {cartCount > 0 && <span className="bg-sp-orange text-white text-xs rounded-full px-2 py-0.5">{cartCount}</span>}</h2>
+           <h2 className="text-sp-cream font-semibold text-sm flex items-center gap-2">
+             {viewingOrderId ? 'Редактирование заказа' : 'Новый заказ'} 
+             {cartCount > 0 && <span className="bg-sp-orange text-white text-xs rounded-full px-2 py-0.5">{cartCount}</span>}
+           </h2>
            <p className="text-sp-cream/30 text-[10px] mt-0.5">Официант: {waiterName}</p>
          </div>
       )}
@@ -357,7 +468,7 @@ function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment,
       <AnimatePresence>
         {success && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mx-3 mt-3 bg-green-500/15 border border-green-500/25 rounded-xl p-3 text-center">
-            <div className="text-green-400 font-semibold text-sm">✅ Заказ #{success} принят!</div>
+            <div className="text-green-400 font-semibold text-sm">✅ Заказ отправлен!</div>
             <button onClick={onDismissSuccess} className="text-green-400/60 text-xs mt-1 hover:text-green-400">Закрыть</button>
           </motion.div>
         )}
@@ -399,9 +510,11 @@ function CartPanel({ cart, cartTotal, cartCount, tableNum, setTableNum, comment,
       </div>
 
       <div className={`p-4 border-t border-white/8 bg-black/20 ${isMobile ? 'pb-8' : ''}`}>
-        <div className="flex gap-2 mb-3">
-           <input type="number" placeholder="Стол №" value={tableNum} onChange={e => setTableNum(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange w-24 text-center font-bold" />
-           <input type="text" placeholder="Общий комментарий" value={comment} onChange={e => setComment(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange flex-1" />
+        <div className="flex flex-col gap-2 mb-3">
+           <div className="flex gap-2">
+              <input type="number" placeholder="Стол №" value={tableNum} onChange={e => setTableNum(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange w-24 text-center font-bold" />
+              <input type="text" placeholder="Общий комментарий (напр. именинник)" value={generalComment} onChange={e => setGeneralComment(e.target.value)} className="form-input py-3 text-base bg-white/5 border-white/10 focus:border-sp-orange flex-1" />
+           </div>
         </div>
         
         <div className="flex justify-between items-center py-2 mb-2">
