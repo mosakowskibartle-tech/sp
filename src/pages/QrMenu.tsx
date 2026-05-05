@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, ChefHat, Receipt } from 'lucide-react';
+import { Search, User, ChefHat, Receipt } from 'lucide-react'; // Убрали Flame и Clock
 import { useSearchParams } from 'react-router-dom';
 import { type MenuItem } from '../components/MenuCard';
 
@@ -28,8 +28,7 @@ const BAR_CATS = [
   { id: 'Безалкогольные', label: 'Б/А', emoji: '🧃' },
 ];
 
-// ... (остальной код типов OrderItem, TableOrder и компонента QrCard остается без изменений) ...
-
+// --- ТИПЫ ЗАКАЗА ---
 interface OrderItem {
   name: string;
   qty: number;
@@ -42,6 +41,7 @@ interface TableOrder {
   total: number;
 }
 
+// --- КАРТОЧКА БЛЮДА ---
 function QrCard({ item }: { item: MenuItem }) {
   return (
     <motion.div
@@ -64,6 +64,7 @@ function QrCard({ item }: { item: MenuItem }) {
         )}
         <div className="flex items-center justify-between mt-auto">
           <span className="text-orange-600 font-bold text-base">{item.price.toLocaleString('ru-RU')} ₽</span>
+          {/* Используем any для weight, если его нет в типе MenuItem, чтобы не ломать сборку */}
           {(item as any).weight && <span className="text-gray-300 text-xs">{(item as any).weight} г</span>}
         </div>
       </div>
@@ -71,6 +72,7 @@ function QrCard({ item }: { item: MenuItem }) {
   );
 }
 
+// --- ВКЛАДКА "МОЙ СТОЛ" ---
 function MyTableTab({ tableNum }: { tableNum: string }) {
   const [order, setOrder] = useState<TableOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,7 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
 
   return (
     <div className="space-y-6 pb-10">
+      {/* Официант */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
         <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center">
           <User size={24} />
@@ -107,6 +110,7 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
         </a>
       </div>
 
+      {/* Список блюд */}
       <div>
         <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
           <Receipt size={18} className="text-orange-500" /> Текущий заказ
@@ -148,6 +152,7 @@ function MyTableTab({ tableNum }: { tableNum: string }) {
   );
 }
 
+// --- ОСНОВНОЙ КОМПОНЕНТ QR МЕНЮ ---
 export default function QrMenu() {
   const [searchParams] = useSearchParams();
   const tableNum = searchParams.get('table') ?? '';
@@ -174,7 +179,6 @@ export default function QrMenu() {
   const cats = mode === 'bar' ? BAR_CATS : FOOD_CATS;
 
   const filtered = items.filter(i => {
-    // Важно: проверяем точное совпадение категории
     const mc = cat === 'all' || i.category === cat;
     const ms = !search || i.name.toLowerCase().includes(search.toLowerCase());
     return mc && ms;
