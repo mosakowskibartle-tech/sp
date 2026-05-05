@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Minus, Send, Settings, Trash2, X, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Plus, Minus, Send, Settings, X, Save } from 'lucide-react';;
 
 // Точный список категорий из Menu.tsx (синхронизирован с БД)
 const CATEGORIES = [
